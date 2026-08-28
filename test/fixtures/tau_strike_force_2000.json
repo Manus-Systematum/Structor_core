@@ -1,0 +1,435 @@
+{
+  "_comment": [
+    "Reference roster: a real 2,000 pt T'au Strike Force list, imported from",
+    "test/fixtures/war_organ_export.txt. Regenerate with:",
+    "  dart run bin/import.dart test/fixtures/war_organ_export.txt \\",
+    "    --out test/fixtures/tau_strike_force_2000.json",
+    "Do not hand-edit: a fixture out of step with the importer stops testing it."
+  ],
+  "schemaVersion": 1,
+  "name": "2k ret",
+  "factionId": "tau-empire",
+  "battleSizeId": "strike-force",
+  "detachments": [
+    {
+      "detachmentId": "advanced-acquisition-cadre"
+    },
+    {
+      "detachmentId": "experimental-prototype-cadre"
+    }
+  ],
+  "declaredDisposition": "reconnaissance",
+  "units": [
+    {
+      "instanceId": "u01",
+      "datasheetId": "commander-in-enforcer-battlesuit",
+      "models": 1,
+      "wargear": [
+        {
+          "itemId": "battlesuit-fists",
+          "count": 1
+        },
+        {
+          "itemId": "gun-drone",
+          "count": 1
+        },
+        {
+          "itemId": "missile-pod",
+          "count": 4
+        },
+        {
+          "itemId": "shield-drone",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "instanceId": "u02",
+      "datasheetId": "crisis-fireknife-battlesuits",
+      "models": 3,
+      "wargear": [
+        {
+          "itemId": "missile-pod",
+          "count": 6
+        },
+        {
+          "itemId": "battlesuit-fists",
+          "count": 3
+        },
+        {
+          "itemId": "gun-drone",
+          "count": 3
+        },
+        {
+          "itemId": "shield-drone",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "instanceId": "u03",
+      "datasheetId": "commander-in-coldstar-battlesuit",
+      "models": 1,
+      "wargear": [
+        {
+          "itemId": "battlesuit-fists",
+          "count": 1
+        },
+        {
+          "itemId": "gun-drone",
+          "count": 1
+        },
+        {
+          "itemId": "shield-drone",
+          "count": 1
+        },
+        {
+          "itemId": "tau-flamer",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "instanceId": "u04",
+      "datasheetId": "crisis-starscythe-battlesuits",
+      "models": 3,
+      "wargear": [
+        {
+          "itemId": "tau-flamer",
+          "count": 6
+        },
+        {
+          "itemId": "battlesuit-fists",
+          "count": 3
+        },
+        {
+          "itemId": "gun-drone",
+          "count": 3
+        },
+        {
+          "itemId": "shield-drone",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "instanceId": "u05",
+      "datasheetId": "commander-in-enforcer-battlesuit",
+      "models": 1,
+      "wargear": [
+        {
+          "itemId": "battlesuit-fists",
+          "count": 1
+        },
+        {
+          "itemId": "gun-drone",
+          "count": 1
+        },
+        {
+          "itemId": "missile-pod",
+          "count": 4
+        },
+        {
+          "itemId": "shield-drone",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "instanceId": "u06",
+      "datasheetId": "crisis-fireknife-battlesuits",
+      "models": 3,
+      "wargear": [
+        {
+          "itemId": "battlesuit-fists",
+          "count": 3
+        },
+        {
+          "itemId": "missile-pod",
+          "count": 6
+        },
+        {
+          "itemId": "gun-drone",
+          "count": 3
+        },
+        {
+          "itemId": "shield-drone",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "instanceId": "u07",
+      "datasheetId": "commander-in-coldstar-battlesuit",
+      "models": 1,
+      "wargear": [
+        {
+          "itemId": "battlesuit-fists",
+          "count": 1
+        },
+        {
+          "itemId": "gun-drone",
+          "count": 1
+        },
+        {
+          "itemId": "shield-drone",
+          "count": 1
+        },
+        {
+          "itemId": "tau-flamer",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "instanceId": "u08",
+      "datasheetId": "crisis-starscythe-battlesuits",
+      "models": 3,
+      "wargear": [
+        {
+          "itemId": "tau-flamer",
+          "count": 6
+        },
+        {
+          "itemId": "battlesuit-fists",
+          "count": 3
+        },
+        {
+          "itemId": "gun-drone",
+          "count": 3
+        },
+        {
+          "itemId": "shield-drone",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "instanceId": "u09",
+      "datasheetId": "the-twin-lance",
+      "models": 2,
+      "wargear": [
+        {
+          "itemId": "fusion-eliminator",
+          "count": 1
+        },
+        {
+          "itemId": "xv-pulse-pistol",
+          "count": 2
+        },
+        {
+          "itemId": "shardstorm-burst-system",
+          "count": 2
+        },
+        {
+          "itemId": "mv15-gun-drone",
+          "count": 2
+        },
+        {
+          "itemId": "ion-scattercannon",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "instanceId": "u10",
+      "datasheetId": "broadside-battlesuits",
+      "models": 1,
+      "wargear": [
+        {
+          "itemId": "crushing-bulk",
+          "count": 1
+        },
+        {
+          "itemId": "heavy-rail-rifle",
+          "count": 1
+        },
+        {
+          "itemId": "missile-drone",
+          "count": 2
+        },
+        {
+          "itemId": "seeker-missile",
+          "count": 1
+        },
+        {
+          "itemId": "twin-smart-missile-system",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "instanceId": "u11",
+      "datasheetId": "broadside-battlesuits",
+      "models": 1,
+      "wargear": [
+        {
+          "itemId": "crushing-bulk",
+          "count": 1
+        },
+        {
+          "itemId": "heavy-rail-rifle",
+          "count": 1
+        },
+        {
+          "itemId": "missile-drone",
+          "count": 2
+        },
+        {
+          "itemId": "twin-smart-missile-system",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "instanceId": "u12",
+      "datasheetId": "ghostkeel-battlesuit",
+      "models": 1,
+      "wargear": [
+        {
+          "itemId": "battlesuit-support-system",
+          "count": 1
+        },
+        {
+          "itemId": "fusion-collider",
+          "count": 1
+        },
+        {
+          "itemId": "ghostkeel-fists",
+          "count": 1
+        },
+        {
+          "itemId": "twin-fusion-blaster",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "instanceId": "u13",
+      "datasheetId": "riptide-battlesuit",
+      "models": 1,
+      "wargear": [
+        {
+          "itemId": "missile-drone",
+          "count": 2
+        },
+        {
+          "itemId": "ion-accelerator",
+          "count": 1
+        },
+        {
+          "itemId": "riptide-fists",
+          "count": 1
+        },
+        {
+          "itemId": "twin-smart-missile-system",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "instanceId": "u14",
+      "datasheetId": "riptide-battlesuit",
+      "models": 1,
+      "wargear": [
+        {
+          "itemId": "ion-accelerator",
+          "count": 1
+        },
+        {
+          "itemId": "riptide-fists",
+          "count": 1
+        },
+        {
+          "itemId": "twin-smart-missile-system",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "instanceId": "u15",
+      "datasheetId": "stealth-battlesuits",
+      "models": 5,
+      "wargear": [
+        {
+          "itemId": "battlesuit-fists",
+          "count": 5
+        },
+        {
+          "itemId": "gun-drone",
+          "count": 1
+        },
+        {
+          "itemId": "marker-drone",
+          "count": 1
+        },
+        {
+          "itemId": "pulse-pistol",
+          "count": 1
+        },
+        {
+          "itemId": "fusion-blaster",
+          "count": 1
+        },
+        {
+          "itemId": "burst-cannon",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "instanceId": "u16",
+      "datasheetId": "stealth-battlesuits",
+      "models": 5,
+      "wargear": [
+        {
+          "itemId": "battlesuit-fists",
+          "count": 5
+        },
+        {
+          "itemId": "fusion-blaster",
+          "count": 1
+        },
+        {
+          "itemId": "gun-drone",
+          "count": 1
+        },
+        {
+          "itemId": "marker-drone",
+          "count": 1
+        },
+        {
+          "itemId": "pulse-pistol",
+          "count": 1
+        },
+        {
+          "itemId": "burst-cannon",
+          "count": 4
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "type": "LEADS",
+      "from": "u01",
+      "to": "u02"
+    },
+    {
+      "type": "LEADS",
+      "from": "u03",
+      "to": "u04"
+    },
+    {
+      "type": "LEADS",
+      "from": "u05",
+      "to": "u06"
+    },
+    {
+      "type": "LEADS",
+      "from": "u07",
+      "to": "u08"
+    }
+  ],
+  "warlordInstanceId": "u09"
+}

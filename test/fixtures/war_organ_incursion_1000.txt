@@ -1,0 +1,96 @@
+1k tau (995 points)
+
+Tau Empire
+Advanced Acquisition Cadre, Experimental Prototype Cadre (2 Detachment Points)
+Reconnaissance
+Incursion (1000 Point)
+
+
+ATTACHED UNITS
+
+Attached Unit 1
+
+Commander In Coldstar Battlesuit (95 points)
+  • 1x Battlesuit fists
+  • 1x Gun drone with twin pulse carbine
+  • 1x Shield drone
+  • 4x T’au flamer
+
+Crisis Starscythe Battlesuits (120 points)
+  • 1x Crisis Shas’vre
+    • 2x T’au Flamer
+    • 1x Battlesuit Fists
+    • 1x Gun Drone With Twin Pulse Carbine and Shield Drone
+  • 2x Crisis Shas’ui
+    • 4x T’au Flamer
+    • 2x Battlesuit Fists
+    • 2x Gun Drone With Twin Pulse Carbine and Shield Drone
+
+Attached Unit 2
+
+Commander In Enforcer Battlesuit (80 points)
+  • Warlord
+  • 1x Battlesuit fists
+  • 1x Gun drone with twin pulse carbine
+  • 4x Missile pod
+  • 1x Shield drone
+
+Crisis Fireknife Battlesuits (130 points)
+  • 1x Crisis Shas’vre
+    • 2x Missile Pod
+    • 1x Battlesuit Fists
+    • 1x Gun Drone With Twin Pulse Carbine and Shield Drone
+  • 2x Crisis Shas’ui
+    • 4x Missile Pod
+    • 2x Battlesuit Fists
+    • 2x Gun Drone With Twin Pulse Carbine and Shield Drone
+
+
+CHARACTER
+
+The Twin Lance (220 points)
+  • 1x Ri’Lantar
+    • 1x Fusion Eliminator
+    • 1x Xv Pulse Pistol
+    • 1x Shardstorm Burst System
+    • 1x Mv15 Gun Drone With Twin Pulse Blaster
+  • 1x Ri’Locai
+    • 1x Ion Scattercannon
+    • 1x Xv Pulse Pistol
+    • 1x Shardstorm Burst System
+    • 1x Mv15 Gun Drone With Twin Pulse Blaster
+
+
+OTHER DATASHEETS
+
+Crisis Starscythe Battlesuits (120 points)
+  • 1x Crisis Shas’vre
+    • 2x T’au Flamer
+    • 1x Battlesuit Fists
+    • 1x Gun Drone With Twin Pulse Carbine and Shield Drone
+  • 2x Crisis Shas’ui
+    • 4x T’au Flamer
+    • 2x Battlesuit Fists
+
+Stealth Battlesuits (115 points)
+  • 1x Stealth Shas’vre
+    • 1x Battlesuit Fists
+    • 1x Gun Drone With Twin Pulse Carbine
+    • 1x Pulse Pistol
+    • 1x Fusion Blaster
+  • 4x Stealth Shas’ui
+    • 4x Burst Cannon
+    • 4x Battlesuit Fists
+  • Enhancement: Negation Emitters
+
+Stealth Battlesuits (115 points)
+  • 1x Stealth Shas’vre
+    • 1x Battlesuit Fists
+    • 1x Fusion Blaster
+    • 1x Gun Drone With Twin Pulse Carbine
+    • 1x Marker Drone
+  • 4x Stealth Shas’ui
+    • 4x Burst Cannon
+    • 4x Battlesuit Fists
+  • Enhancement: Negation Emitters
+

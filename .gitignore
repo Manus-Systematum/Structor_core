@@ -1,0 +1,11 @@
+# Dart
+.dart_tool/
+.packages
+pubspec.lock
+build/
+
+# macOS
+.DS_Store
+
+# Local path overrides for a sibling checkout (README explains).
+pubspec_overrides.yaml

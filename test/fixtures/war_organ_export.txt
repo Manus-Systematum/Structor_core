@@ -1,0 +1,152 @@
+2k ret (2000 points)
+
+Tau Empire
+Advanced Acquisition Cadre, Experimental Prototype Cadre (2 Detachment Points)
+Reconnaissance
+Strike Force (2000 Point)
+
+
+ATTACHED UNITS
+
+Attached Unit 1
+
+Commander In Enforcer Battlesuit (80 points)
+  • 1x Battlesuit fists
+  • 1x Gun drone with twin pulse carbine
+  • 4x Missile pod
+  • 1x Shield drone
+
+Crisis Fireknife Battlesuits (130 points)
+  • 1x Crisis Shas’vre
+    • 2x Missile Pod
+    • 1x Battlesuit Fists
+    • 1x Gun Drone With Twin Pulse Carbine and Shield Drone
+  • 2x Crisis Shas’ui
+    • 4x Missile Pod
+    • 2x Battlesuit Fists
+    • 2x Gun Drone With Twin Pulse Carbine and Shield Drone
+
+Attached Unit 2
+
+Commander In Coldstar Battlesuit (95 points)
+  • 1x Battlesuit fists
+  • 1x Gun drone with twin pulse carbine
+  • 1x Shield drone
+  • 4x T’au flamer
+
+Crisis Starscythe Battlesuits (120 points)
+  • 1x Crisis Shas’vre
+    • 2x T’au Flamer
+    • 1x Battlesuit Fists
+    • 1x Gun Drone With Twin Pulse Carbine and Shield Drone
+  • 2x Crisis Shas’ui
+    • 4x T’au Flamer
+    • 2x Battlesuit Fists
+    • 2x Gun Drone With Twin Pulse Carbine and Shield Drone
+
+Attached Unit 3
+
+Commander In Enforcer Battlesuit (80 points)
+  • 1x Battlesuit fists
+  • 1x Gun drone with twin pulse carbine
+  • 4x Missile pod
+  • 1x Shield drone
+
+Crisis Fireknife Battlesuits (130 points)
+  • 1x Crisis Shas’vre
+    • 1x Battlesuit Fists
+    • 2x Missile Pod
+    • 1x Gun Drone With Twin Pulse Carbine and Shield Drone
+  • 2x Crisis Shas’ui
+    • 4x Missile Pod
+    • 2x Battlesuit Fists
+    • 2x Gun Drone With Twin Pulse Carbine and Shield Drone
+
+Attached Unit 4
+
+Commander In Coldstar Battlesuit (95 points)
+  • 1x Battlesuit fists
+  • 1x Gun drone with twin pulse carbine
+  • 1x Shield drone
+  • 4x T’au flamer
+
+Crisis Starscythe Battlesuits (120 points)
+  • 1x Crisis Shas’vre
+    • 2x T’au Flamer
+    • 1x Battlesuit Fists
+    • 1x Gun Drone With Twin Pulse Carbine and Shield Drone
+  • 2x Crisis Shas’ui
+    • 4x T’au Flamer
+    • 2x Battlesuit Fists
+    • 2x Gun Drone With Twin Pulse Carbine and Shield Drone
+
+
+CHARACTER
+
+The Twin Lance (220 points)
+  • Warlord
+  • 1x Ri’Lantar
+    • 1x Fusion Eliminator
+    • 1x Xv Pulse Pistol
+    • 1x Shardstorm Burst System
+    • 1x Mv15 Gun Drone With Twin Pulse Blaster
+  • 1x Ri’Locai
+    • 1x Ion Scattercannon
+    • 1x Xv Pulse Pistol
+    • 1x Shardstorm Burst System
+    • 1x Mv15 Gun Drone With Twin Pulse Blaster
+
+
+OTHER DATASHEETS
+
+Broadside Battlesuits (75 points)
+  • 1x Crushing bulk
+  • 1x Heavy rail rifle
+  • 2x Missile drone
+  • 1x Seeker missile
+  • 1x Twin smart missile system
+
+Broadside Battlesuits (75 points)
+  • 1x Crushing bulk
+  • 1x Heavy rail rifle
+  • 2x Missile drone
+  • 1x Twin smart missile system
+
+Ghostkeel Battlesuit (150 points)
+  • 1x Battlesuit support system
+  • 1x Fusion collider
+  • 1x Ghostkeel fists
+  • 1x Twin fusion blaster
+
+Riptide Battlesuit (215 points)
+  • 2x Missile drones
+  • 1x Ion accelerator
+  • 1x Riptide fists
+  • 1x Twin smart missile system
+
+Riptide Battlesuit (215 points)
+  • 1x Ion accelerator
+  • 1x Riptide fists
+  • 1x Twin smart missile system
+
+Stealth Battlesuits (100 points)
+  • 1x Stealth Shas’vre
+    • 1x Battlesuit Fists
+    • 1x Gun Drone With Twin Pulse Carbine
+    • 1x Marker Drone
+    • 1x Pulse Pistol
+    • 1x Fusion Blaster
+  • 4x Stealth Shas’ui
+    • 4x Burst Cannon
+    • 4x Battlesuit Fists
+
+Stealth Battlesuits (100 points)
+  • 1x Stealth Shas’vre
+    • 1x Battlesuit Fists
+    • 1x Fusion Blaster
+    • 1x Gun Drone With Twin Pulse Carbine
+    • 1x Marker Drone
+    • 1x Pulse Pistol
+  • 4x Stealth Shas’ui
+    • 4x Burst Cannon
+    • 4x Battlesuit Fists
