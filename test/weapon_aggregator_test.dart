@@ -111,18 +111,18 @@ void main() {
     });
 
     test('a single row carries no parenthetical', () {
-      final rows = aggregator
-          .aggregate([_r('sqd', 'squad', models: 3, wargear: {'pod': 6})])
-          .weapons;
+      final rows = aggregator.aggregate([
+        _r('sqd', 'squad', models: 3, wargear: {'pod': 6})
+      ]).weapons;
       expect(rows.single.displayName, 'Missile pod');
     });
   });
 
   group('dice expressions stay symbolic', () {
     test('eight flamers are 8D6 and hit automatically', () {
-      final rows = aggregator
-          .aggregate([_r('sqd', 'squad', models: 4, wargear: {'flamer': 8})])
-          .weapons;
+      final rows = aggregator.aggregate([
+        _r('sqd', 'squad', models: 4, wargear: {'flamer': 8})
+      ]).weapons;
       expect(rows.single.attacks.display, '8D6');
       expect(rows.single.attacks.fixed, isNull,
           reason: 'a dice pool has no fixed total');
@@ -155,7 +155,8 @@ void main() {
 
     test('shooting excludes melee weapons', () {
       final rows = aggregator.aggregate(attached).weapons;
-      expect(rows.every((w) => w.displayName.startsWith('Missile pod')), isTrue);
+      expect(
+          rows.every((w) => w.displayName.startsWith('Missile pod')), isTrue);
     });
 
     test('fight shows melee, still split by skill', () {
@@ -171,7 +172,9 @@ void main() {
     // 18" and a WS profile in combat. Filtering on the weapon's type would put
     // its melee profile in the shooting table.
     final dual = MapCatalogue(
-      [_unit('hero', 'Hero', ['eliminator'])],
+      [
+        _unit('hero', 'Hero', ['eliminator'])
+      ],
       weapons: [
         SourceWeapon.fromJson({
           'id': 'eliminator',
@@ -193,7 +196,9 @@ void main() {
       ],
     );
     final split = WeaponAggregator(dual);
-    final unit = [_r('h', 'hero', wargear: {'eliminator': 1})];
+    final unit = [
+      _r('h', 'hero', wargear: {'eliminator': 1})
+    ];
 
     test('shooting shows only the BS profile', () {
       final rows = split.aggregate(unit).weapons;
@@ -209,8 +214,9 @@ void main() {
 
     test('an auto-hitting profile with neither WS nor BS follows its weapon',
         () {
-      final rows = aggregator
-          .aggregate([_r('sqd', 'squad', wargear: {'flamer': 1})]).weapons;
+      final rows = aggregator.aggregate([
+        _r('sqd', 'squad', wargear: {'flamer': 1})
+      ]).weapons;
       expect(rows.single.autoHits, isTrue);
       expect(rows, isNotEmpty, reason: 'Torrent stays in the shooting table');
     });
@@ -218,21 +224,27 @@ void main() {
 
   group('casualties make the table live', () {
     test('losing a model reduces weapons and attacks exactly', () {
-      final unit = [_r('sqd', 'squad', models: 3, wargear: {'pod': 6})];
+      final unit = [
+        _r('sqd', 'squad', models: 3, wargear: {'pod': 6})
+      ];
 
       final full = aggregator.aggregate(unit).weapons.single;
       expect(full.weaponCount, 6);
       expect(full.attacks.fixed, 12);
 
       final wounded = aggregator
-          .aggregate(unit, modelsRemaining: {'sqd': 2}).weapons.single;
+          .aggregate(unit, modelsRemaining: {'sqd': 2})
+          .weapons
+          .single;
       expect(wounded.weaponCount, 4, reason: 'two pods per model, two models');
       expect(wounded.attacks.fixed, 8);
     });
 
     test('a wiped unit contributes nothing', () {
       final rows = aggregator.aggregate(
-        [_r('sqd', 'squad', models: 3, wargear: {'pod': 6})],
+        [
+          _r('sqd', 'squad', models: 3, wargear: {'pod': 6})
+        ],
         modelsRemaining: {'sqd': 0},
       ).weapons;
       expect(rows, isEmpty);
@@ -243,7 +255,9 @@ void main() {
       // 5 pods across 3 models has no exact per-model share, so the count is
       // left alone instead of inventing a split.
       final rows = aggregator.aggregate(
-        [_r('sqd', 'squad', models: 3, wargear: {'pod': 5})],
+        [
+          _r('sqd', 'squad', models: 3, wargear: {'pod': 5})
+        ],
         modelsRemaining: {'sqd': 2},
       ).weapons;
       expect(rows.single.weaponCount, 5);
@@ -252,8 +266,9 @@ void main() {
 
   group('unresolvable wargear is reported, not dropped', () {
     test('an item the carrier does not have is surfaced', () {
-      final result =
-          aggregator.aggregate([_r('sqd', 'squad', wargear: {'nope': 2})]);
+      final result = aggregator.aggregate([
+        _r('sqd', 'squad', wargear: {'nope': 2})
+      ]);
       expect(result.isComplete, isFalse);
       expect(result.unresolved.single.itemId, 'nope');
       expect(result.weapons, isEmpty);
@@ -261,8 +276,9 @@ void main() {
 
     test('a commander does not silently borrow the squad profile', () {
       // 'flamer' is on the squad's weapon list, not the commander's.
-      final result =
-          aggregator.aggregate([_r('cmd', 'commander', wargear: {'flamer': 2})]);
+      final result = aggregator.aggregate([
+        _r('cmd', 'commander', wargear: {'flamer': 2})
+      ]);
       expect(result.unresolved.single.itemId, 'flamer');
     });
   });
@@ -277,9 +293,8 @@ void main() {
       final faction = correctedLoader().loadFaction('tau-empire');
       final catalogue = MapCatalogue.ofFaction(faction);
 
-      final attached = roster
-          .combatUnits()
-          .firstWhere((g) => g.first.instanceId == 'u01');
+      final attached =
+          roster.combatUnits().firstWhere((g) => g.first.instanceId == 'u01');
       expect(attached.length, 2, reason: 'Commander plus Crisis squad');
 
       final result = WeaponAggregator(catalogue).aggregate(attached);
@@ -307,14 +322,14 @@ void main() {
           File('test/fixtures/tau_strike_force_2000.json').readAsStringSync()));
       final faction = correctedLoader().loadFaction('tau-empire');
 
-      final attached = roster
-          .combatUnits()
-          .firstWhere((g) => g.first.instanceId == 'u03');
+      final attached =
+          roster.combatUnits().firstWhere((g) => g.first.instanceId == 'u03');
       final result =
           WeaponAggregator(MapCatalogue.ofFaction(faction)).aggregate(attached);
 
-      final flamers =
-          result.weapons.where((w) => w.displayName.contains('flamer')).toList();
+      final flamers = result.weapons
+          .where((w) => w.displayName.contains('flamer'))
+          .toList();
       expect(flamers, isNotEmpty);
       expect(flamers.every((w) => w.autoHits), isTrue,
           reason: 'Torrent weapons have no BS');

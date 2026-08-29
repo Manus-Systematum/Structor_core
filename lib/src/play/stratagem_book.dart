@@ -161,8 +161,7 @@ class StratagemBook {
       }
 
       final abilityId = stratagem.abilityId;
-      final ability =
-          abilityId == null ? null : abilityLookup?.call(abilityId);
+      final ability = abilityId == null ? null : abilityLookup?.call(abilityId);
 
       out.add(AvailableStratagem(
         stratagem: stratagem,
@@ -243,8 +242,7 @@ class StratagemBook {
         'once-per-turn' => state.stratagemsUsed.any(
             (u) => u.stratagemId == stratagem.id && u.round == state.round),
         // The default, and the one 11e leans on.
-        _ => state
-            .usesIn(phase: phase)
-            .any((u) => u.stratagemId == stratagem.id),
+        _ =>
+          state.usesIn(phase: phase).any((u) => u.stratagemId == stratagem.id),
       };
 }

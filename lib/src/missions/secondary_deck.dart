@@ -40,8 +40,10 @@ class SecondaryDeck {
   /// Cards not yet drawn. A card that was drawn and discarded stays out —
   /// [SecondaryState.used] records everything seen, so a re-draw cannot repeat
   /// one the player already turned down.
-  List<MissionCard> remaining(SecondaryState state) =>
-      [for (final card in cards) if (!state.used.contains(card.id)) card];
+  List<MissionCard> remaining(SecondaryState state) => [
+        for (final card in cards)
+          if (!state.used.contains(card.id)) card
+      ];
 
   /// One card at random from what is left, or null when the deck is spent.
   MissionCard? draw(SecondaryState state, {Random? random}) {

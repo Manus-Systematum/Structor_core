@@ -68,10 +68,9 @@ void main() {
 
     test('a rule with something to say is not', () {
       expect(render('adepta-sororitas', 'cherub').isBareKeyword, isFalse);
-      expect(render('adepta-sororitas', 'acts-of-faith').isBareKeyword,
-          isFalse);
       expect(
-          render('adepta-sororitas', 'purge-and-cleanse').isBareKeyword,
+          render('adepta-sororitas', 'acts-of-faith').isBareKeyword, isFalse);
+      expect(render('adepta-sororitas', 'purge-and-cleanse').isBareKeyword,
           isFalse,
           reason: 'it names the rule it grants');
     }, skip: skip);
@@ -102,19 +101,28 @@ void main() {
 
     test('an empty render counts as one', () {
       const empty = RenderedRule(
-          abilityId: 'x', name: 'Stealth', text: '—', phases: [],
+          abilityId: 'x',
+          name: 'Stealth',
+          text: '—',
+          phases: [],
           unrendered: []);
       expect(empty.isBareKeyword, isTrue);
     });
 
     test('punctuation and case do not hide the repetition', () {
       const same = RenderedRule(
-          abilityId: 'x', name: 'Fights First', text: 'Fights First.',
-          phases: [], unrendered: []);
+          abilityId: 'x',
+          name: 'Fights First',
+          text: 'Fights First.',
+          phases: [],
+          unrendered: []);
       expect(same.isBareKeyword, isTrue);
 
       const granted = RenderedRule(
-          abilityId: 'x', name: 'Leader', text: 'Grants leader.', phases: [],
+          abilityId: 'x',
+          name: 'Leader',
+          text: 'Grants leader.',
+          phases: [],
           unrendered: []);
       expect(granted.isBareKeyword, isTrue);
     });

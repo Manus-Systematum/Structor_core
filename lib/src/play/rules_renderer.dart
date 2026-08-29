@@ -198,8 +198,7 @@ class RulesRenderer {
       case 'dice-gated':
         final dice = strOr(node['dice'], 'D6');
         final threshold = str(node['threshold']) ?? '?';
-        final comparison =
-            strOr(node['comparison'], 'gte') == 'gte' ? '+' : '';
+        final comparison = strOr(node['comparison'], 'gte') == 'gte' ? '+' : '';
         final success = _effect(asMap(node['on_success']), ctx);
         final fail = _effect(asMap(node['on_fail']), ctx);
         final tail = fail.isEmpty ? '' : ', otherwise $fail';
@@ -207,8 +206,7 @@ class RulesRenderer {
 
       case 'stat-modifier':
         final stat = _statName(strOr(mod['stat'], '?'));
-        final qualifier =
-            str(mod['weapon_type']) ?? str(mod['attack_type']);
+        final qualifier = str(mod['weapon_type']) ?? str(mod['attack_type']);
         final scope = qualifier == null ? '' : ' (${_words(qualifier)})';
         // Whose characteristic changes is the whole meaning of an ability
         // like Enforcer Commander, where the AP being worsened is the
@@ -287,8 +285,7 @@ class RulesRenderer {
           // A fixed roll, not a bonus: Sentinel Protocols hits on 5+ in
           // Overwatch regardless of BS.
           'set' => '$roll on ${str(mod['value']) ?? '?'}+$when',
-          'crit-on' =>
-            'critical $roll on ${str(mod['value']) ?? '?'}+$when',
+          'crit-on' => 'critical $roll on ${str(mod['value']) ?? '?'}+$when',
           'add' || 'subtract' => '${_signed(mod)} to $roll$when',
           final other => _unknownOperation(other, '$roll rolls', mod, ctx),
         };
@@ -377,9 +374,8 @@ class RulesRenderer {
       case 'stratagem-cost-modifier':
         final operation = strOr(mod['operation'], 'increase');
         final amount = str(mod['amount']) ?? '1';
-        final sign = operation == 'reduce' || operation == 'decrease'
-            ? '-'
-            : '+';
+        final sign =
+            operation == 'reduce' || operation == 'decrease' ? '-' : '+';
         final scope = str(mod['applies_to']);
         final what = scope == null ? 'Stratagems' : _words(scope);
         return '$sign${amount}CP to $what';
@@ -452,8 +448,9 @@ class RulesRenderer {
 
       case 'disembark-after-move':
         final after = _words(strOr(mod['after'], 'moving'));
-        final charge =
-            mod['can_charge'] == true ? ' and may charge' : ' but may not charge';
+        final charge = mod['can_charge'] == true
+            ? ' and may charge'
+            : ' but may not charge';
         return 'may disembark after $after$charge';
 
       case 'resource-spend':
@@ -517,14 +514,11 @@ class RulesRenderer {
           : 'your turn',
       'timing-is' => _words(strOr(params['timing'], '')),
       'target-has-keyword' => _targetKeyword(params),
-      'unit-has-keyword' =>
-        'while ${_keyword(strOr(params['keyword'], '?'))}',
-      'attack-is-type' =>
-        '${_words(strOr(params['attack_type'], ''))} attacks',
+      'unit-has-keyword' => 'while ${_keyword(strOr(params['keyword'], '?'))}',
+      'attack-is-type' => '${_words(strOr(params['attack_type'], ''))} attacks',
       'battle-round' => _battleRound(params),
-      'unit-within-range-of' =>
-        'within ${str(params['range']) ?? '?'}" of a '
-            '${_words(strOr(params['target_type'], 'unit'))}',
+      'unit-within-range-of' => 'within ${str(params['range']) ?? '?'}" of a '
+          '${_words(strOr(params['target_type'], 'unit'))}',
       'opponent-unit-within-range' =>
         'against the ${_words(strOr(params['target_qualifier'], 'nearest enemy'))}',
       'was-hit-by-attack' =>
@@ -532,7 +526,6 @@ class RulesRenderer {
       'unit-below-starting-strength' => negated
           ? '${_words(strOr(params['subject'], 'unit'))} at full strength'
           : '${_words(strOr(params['subject'], 'unit'))} below starting strength',
-
       'attack-stat-compare' =>
         '${_statName(strOr(params['attacker_stat'], '?'))} '
             '${_words(strOr(params['comparison'], 'vs'))} '
@@ -560,7 +553,6 @@ class RulesRenderer {
       'within-range-of-objective' => 'within range of an objective',
       'disembarked-from-transport' => 'after disembarking',
       'damage-is-mortal' => 'against mortal wounds',
-
       _ => null,
     };
 

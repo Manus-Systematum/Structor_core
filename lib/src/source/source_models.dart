@@ -355,9 +355,28 @@ class SourceWargearOption {
         for (final bundle in choices) ...bundle,
       };
 
+  /// The whole selections this record allows, however it spells them.
+  ///
+  /// **A `replacement` naming two items is one selection, not two.** The
+  /// Ministorum Priest's Zealot's vindictor is replaced with *a holy pistol
+  /// and a power weapon* — both, together — and reading the list as two
+  /// independent items turned that into a choice between them, on 83
+  /// datasheets across 20 factions (DESIGN.md §4.15). `replacement_choice`
+  /// says the same thing when there is more than one way to do it; a
+  /// single-item `replacement` is a plain swap and stays a counter.
+  ///
+  /// A bundle repeating an item — the Razorwing Jetfighter's two
+  /// disintegrator cannons — means two of it, which a set of items cannot
+  /// say at all.
+  List<List<String>> get bundles => choices.isNotEmpty
+      ? choices
+      : replacement.length > 1
+          ? [replacement]
+          : const [];
+
   /// True when the bundles spell out whole selections rather than listing
   /// single items under a cap. Only these are worth enforcing.
-  bool get isEnumeration => choices.any((bundle) => bundle.length > 1);
+  bool get isEnumeration => bundles.any((bundle) => bundle.length > 1);
 }
 
 class SourceUnit {

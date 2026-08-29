@@ -287,7 +287,10 @@ void main() {
         ],
         'ability_ids': ['ability-a'],
         'weapon_ids': ['weapon-a'],
-        'game_version': {'edition': '11th', 'dataslate': 'pre-launch-provisional'},
+        'game_version': {
+          'edition': '11th',
+          'dataslate': 'pre-launch-provisional'
+        },
       },
     ]);
     final report = _analyze(s);

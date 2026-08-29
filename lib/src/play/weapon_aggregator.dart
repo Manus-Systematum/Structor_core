@@ -219,8 +219,9 @@ class WeaponAggregator {
     for (final bucket in buckets) {
       final ambiguous = (nameCounts[bucket.baseName] ?? 0) > 1;
       rows.add(AggregatedWeapon(
-        displayName:
-            ambiguous ? '${bucket.baseName} (${bucket.carrierName})' : bucket.baseName,
+        displayName: ambiguous
+            ? '${bucket.baseName} (${bucket.carrierName})'
+            : bucket.baseName,
         weaponId: bucket.weapon.id,
         profile: bucket.profile,
         weaponCount: bucket.count,

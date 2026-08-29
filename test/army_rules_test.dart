@@ -91,8 +91,8 @@ void main() {
 
     test('a unit-only rule is filed under its unit, not as a column', () {
       expect(rules.columns.map((c) => c.name), isNot(contains('Nova Charge')));
-      final riptide = rules.units
-          .firstWhere((u) => u.name == 'Riptide Battlesuit');
+      final riptide =
+          rules.units.firstWhere((u) => u.name == 'Riptide Battlesuit');
       expect(riptide.only.map((r) => r.name), contains('Nova Charge'));
     }, skip: available ? null : 'no snapshot');
 
@@ -109,9 +109,8 @@ void main() {
       // the Fireknives, so their row must not claim it (§7.3.7).
       final fireknife = rules.units
           .firstWhere((u) => u.name == 'Crisis Fireknife Battlesuits');
-      final marker = rules.columns
-          .where((c) => c.name == 'Marker Drone')
-          .firstOrNull;
+      final marker =
+          rules.columns.where((c) => c.name == 'Marker Drone').firstOrNull;
       expect(marker, isNotNull);
       expect(marker!.owners, isNot(contains(fireknife.datasheetId)));
     }, skip: available ? null : 'no snapshot');
@@ -147,7 +146,8 @@ void main() {
       final dataset = Dataset.of(faction, revision: 'test');
       final roster = Roster.fromJson(jsonDecode(
           File('test/fixtures/tau_strike_force_2000.json').readAsStringSync()));
-      final snapshot = SnapshotBuilder.fromLoader(loader, dataset).build(roster);
+      final snapshot =
+          SnapshotBuilder.fromLoader(loader, dataset).build(roster);
 
       final rules = ArmyRules.forRoster(
         roster,
@@ -159,9 +159,8 @@ void main() {
       // Ghostkeel is in this list. Deciding sharedness per roster filed it
       // under the unit, so the same rule moved tier depending on what was
       // taken — which reads as a bug.
-      final lone = rules.columns
-          .where((c) => c.name == 'Lone Operative')
-          .toList();
+      final lone =
+          rules.columns.where((c) => c.name == 'Lone Operative').toList();
       expect(lone, hasLength(1));
       expect(lone.single.owners, hasLength(1));
     }, skip: available ? null : 'no snapshot');
@@ -172,15 +171,16 @@ void main() {
           Dataset.of(loader.loadFaction('tau-empire'), revision: 'test');
       final roster = Roster.fromJson(jsonDecode(
           File('test/fixtures/tau_strike_force_2000.json').readAsStringSync()));
-      final snapshot = SnapshotBuilder.fromLoader(loader, dataset).build(roster);
+      final snapshot =
+          SnapshotBuilder.fromLoader(loader, dataset).build(roster);
 
       expect(snapshot.factionRuleId, 'for-the-greater-good');
       expect(snapshot.abilities, contains('for-the-greater-good'));
       expect(snapshot.sharedAbilities, contains('lone-operative'));
 
       // And survives the round trip a shared list makes.
-      final reread = RosterSnapshot.fromJson(
-          jsonDecode(jsonEncode(snapshot.toJson())));
+      final reread =
+          RosterSnapshot.fromJson(jsonDecode(jsonEncode(snapshot.toJson())));
       expect(reread.factionRuleId, snapshot.factionRuleId);
       expect(reread.sharedAbilities, snapshot.sharedAbilities);
     }, skip: available ? null : 'no snapshot');

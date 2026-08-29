@@ -73,8 +73,7 @@ void main() {
 
     test('a closed window shuts again', () {
       final card = cardWith([
-        award(
-            timing: 'end-of-phase', phase: 'command', min: 2, max: 3, vp: 5),
+        award(timing: 'end-of-phase', phase: 'command', min: 2, max: 3, vp: 5),
       ]);
       expect(card.scoresIn(phase: 'command', round: 3), isTrue);
       expect(card.scoresIn(phase: 'command', round: 4), isFalse);

@@ -47,8 +47,8 @@ void main() {
     });
 
     test('the third copy is priced from a later bracket', () {
-      final cost = calculator.price(
-          _rosterOf([_squad('a'), _squad('b'), _squad('c')]));
+      final cost =
+          calculator.price(_rosterOf([_squad('a'), _squad('b'), _squad('c')]));
       expect(cost.units.map((u) => u.base), [100, 100, 110]);
       expect(cost.units.map((u) => u.copyIndex), [1, 2, 3]);
       expect(cost.total, 310);
@@ -146,7 +146,8 @@ void main() {
         warlordInstanceId: 'a',
       );
 
-      final restored = Roster.fromJson(jsonDecode(jsonEncode(original.toJson())));
+      final restored =
+          Roster.fromJson(jsonDecode(jsonEncode(original.toJson())));
 
       expect(restored.name, 'round trip');
       expect(restored.declaredDisposition, 'reconnaissance');

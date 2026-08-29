@@ -80,10 +80,10 @@ void main() {
       test('a keyword round-trips through JSON with its parameters', () {
         // The import screen re-serialises profiles into the snapshot; the
         // parameters were being dropped on the way back out.
-        final original = kw('anti', {'target_keyword': 'VEHICLE',
-            'threshold': 3});
-        expect(WeaponKeyword.fromJson(original.toJson()).label,
-            'ANTI-VEHICLE 3+');
+        final original =
+            kw('anti', {'target_keyword': 'VEHICLE', 'threshold': 3});
+        expect(
+            WeaponKeyword.fromJson(original.toJson()).label, 'ANTI-VEHICLE 3+');
       });
     });
 
@@ -155,11 +155,16 @@ void main() {
     test('copy-scaled brackets are detected', () {
       final first = PointsBracket.fromJson(
           {'models': 3, 'cost': 85, 'unit_count_min': 1, 'unit_count_max': 2});
-      final third = PointsBracket.fromJson(
-          {'models': 3, 'cost': 95, 'unit_count_min': 3, 'unit_count_max': null});
+      final third = PointsBracket.fromJson({
+        'models': 3,
+        'cost': 95,
+        'unit_count_min': 3,
+        'unit_count_max': null
+      });
 
       expect(first.isCopyScaled, isTrue,
-          reason: 'bounded by unit_count_max, so pricing depends on copy index');
+          reason:
+              'bounded by unit_count_max, so pricing depends on copy index');
       expect(third.isCopyScaled, isTrue);
       expect(third.cost, 95);
     });
@@ -188,7 +193,11 @@ void main() {
         {'item_id': 'missile-pod', 'cost': 5},
       ],
       'wargear_budgets': [
-        {'items': ['shield-drone'], 'count': 3, 'per_models': 3},
+        {
+          'items': ['shield-drone'],
+          'count': 3,
+          'per_models': 3
+        },
       ],
     });
 
@@ -245,15 +254,24 @@ void main() {
     test('fingerprints are key-order independent but value sensitive', () {
       final a = SourceAbility.fromJson({
         'ability_id': 'a',
-        'effect': {'type': 'stat-modifier', 'modifier': {'stat': 'W', 'value': 1}},
+        'effect': {
+          'type': 'stat-modifier',
+          'modifier': {'stat': 'W', 'value': 1}
+        },
       });
       final b = SourceAbility.fromJson({
         'ability_id': 'b',
-        'effect': {'modifier': {'value': 1, 'stat': 'W'}, 'type': 'stat-modifier'},
+        'effect': {
+          'modifier': {'value': 1, 'stat': 'W'},
+          'type': 'stat-modifier'
+        },
       });
       final c = SourceAbility.fromJson({
         'ability_id': 'c',
-        'effect': {'type': 'stat-modifier', 'modifier': {'stat': 'W', 'value': 2}},
+        'effect': {
+          'type': 'stat-modifier',
+          'modifier': {'stat': 'W', 'value': 2}
+        },
       });
 
       expect(a.effectFingerprint, b.effectFingerprint);

@@ -29,8 +29,7 @@ const mfmSlugAliases = <String, String>{
 };
 
 /// The Munitorum slug for a primary faction id.
-String mfmSlugFor(String factionId) =>
-    mfmSlugAliases[factionId] ?? factionId;
+String mfmSlugFor(String factionId) => mfmSlugAliases[factionId] ?? factionId;
 
 /// The primary faction id for a Munitorum slug.
 String factionIdFor(String mfmSlug) {
@@ -63,8 +62,7 @@ class Divergence {
   });
 
   @override
-  String toString() =>
-      '${kind.name.padRight(24)} $subject\n'
+  String toString() => '${kind.name.padRight(24)} $subject\n'
       '${' ' * 26}40kdc: $primary\n'
       '${' ' * 26}MFM:   $munitorum';
 }
@@ -196,9 +194,8 @@ class CrossChecker {
       // as missing.
       for (final entry in mfmUnit.costTable.entries) {
         final (copies, models) = entry.key;
-        final mine = match.value
-            .bracketFor(models: models, copyIndex: copies)
-            ?.cost;
+        final mine =
+            match.value.bracketFor(models: models, copyIndex: copies)?.cost;
         if (mine == null) {
           divergences.add(Divergence(
             kind: DivergenceKind.unitMissing,
@@ -261,7 +258,8 @@ class CrossChecker {
         divergences.add(Divergence(
           kind: DivergenceKind.detachmentUniqueTag,
           subject: ours.name,
-          primary: ours.uniqueTags.isEmpty ? 'none' : ours.uniqueTags.join(', '),
+          primary:
+              ours.uniqueTags.isEmpty ? 'none' : ours.uniqueTags.join(', '),
           munitorum: unique,
         ));
       } else if (unique == null && oursTags.isNotEmpty) {

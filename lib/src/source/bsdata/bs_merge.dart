@@ -80,12 +80,15 @@ MergeResult mergeRecords({
   required List<Object?> bsdata,
   required List<Object?> fortykdc,
   required Set<String> compare,
+
   /// When true, a BSData record only fills a gap: where 40kdc already has one,
   /// the 40kdc record stands untouched. For data BSData produces more thinly
   /// than 40kdc does, overwriting loses more than it gains.
   bool fillOnly = false,
+
   /// Fields where 40kdc's value stands even though BSData produced one.
   Set<String> keepFrom40kdc = const {},
+
   /// List fields where both sources' entries are kept, deduplicated.
   ///
   /// Wargear budgets are the case: 40kdc lists what a datasheet may buy and
@@ -153,8 +156,7 @@ MergeResult mergeRecords({
       // A unit's weapon list stays 40kdc's for the same reason its weapons do:
       // 40kdc scopes a Commander's missile pod to the Commander and BSData
       // does not, so taking BSData's list points the unit at the generic gun.
-      if (keepFrom40kdc.contains(entry.key) &&
-          !_isEmpty(existing[entry.key])) {
+      if (keepFrom40kdc.contains(entry.key) && !_isEmpty(existing[entry.key])) {
         continue;
       }
       if (union.contains(entry.key)) {
@@ -171,8 +173,9 @@ MergeResult mergeRecords({
   return MergeResult(
     records: [for (final id in order) byId[id]!],
     conflicts: conflicts,
-    keptFrom40kdc:
-        had40kdc.where((id) => !_touchedByBsdata(byId[id])).toList(growable: false),
+    keptFrom40kdc: had40kdc
+        .where((id) => !_touchedByBsdata(byId[id]))
+        .toList(growable: false),
     addedByBsdata: added,
   );
 }

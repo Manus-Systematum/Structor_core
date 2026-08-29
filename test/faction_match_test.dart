@@ -31,8 +31,7 @@ void main() {
     });
 
     test('an alias matches, which is how a human writes it', () {
-      expect(
-          matchFactionId('Space Marines', candidates), 'adeptus-astartes');
+      expect(matchFactionId('Space Marines', candidates), 'adeptus-astartes');
     });
 
     test('a chapter is itself, not its parent', () {
@@ -110,8 +109,8 @@ void main() {
       final parent = loader.loadFaction('adeptus-astartes');
 
       expect(chapter.factionRuleId, 'the-red-thirst');
-      expect(chapter.detachments.length,
-          greaterThan(parent.detachments.length));
+      expect(
+          chapter.detachments.length, greaterThan(parent.detachments.length));
     }, skip: root.existsSync() ? null : 'no snapshot');
 
     test('an inherited datasheet is corrected as the parent owns it', () {
@@ -126,8 +125,8 @@ void main() {
       final parentStealth =
           parent.abilities.where((a) => a.abilityId == 'stealth').firstOrNull;
       expect(chapterStealth, isNotNull);
-      expect(chapterStealth!.effectFingerprint,
-          parentStealth!.effectFingerprint);
+      expect(
+          chapterStealth!.effectFingerprint, parentStealth!.effectFingerprint);
     }, skip: root.existsSync() ? null : 'no snapshot');
 
     test('a faction with no parent gets no inheritance at all', () {

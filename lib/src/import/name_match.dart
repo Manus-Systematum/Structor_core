@@ -16,9 +16,7 @@ String normalise(String value) {
   // Apostrophes are *deleted* rather than turned into separators, so that
   // T'au folds to "tau" and Shas'vre to "shasvre". Splitting on them instead
   // yields "t au", which no longer matches the catalogue's "tau-flamer".
-  final folded = value
-      .toLowerCase()
-      .replaceAll(RegExp(r"[’‘ʼ']"), '');
+  final folded = value.toLowerCase().replaceAll(RegExp(r"[’‘ʼ']"), '');
 
   final buffer = StringBuffer();
   for (final rune in folded.runes) {
@@ -47,8 +45,7 @@ String _singular(String token) {
   return token;
 }
 
-Set<String> _tokenSet(String value) =>
-    tokens(value).map(_singular).toSet();
+Set<String> _tokenSet(String value) => tokens(value).map(_singular).toSet();
 
 class Match<T> {
   final T value;

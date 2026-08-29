@@ -34,8 +34,7 @@ void main() {
 
     test('absence of game_modes means matched play, per game-modes.json', () {
       final sororitas = loader.loadFaction('adepta-sororitas');
-      final canoness =
-          sororitas.units.firstWhere((u) => u.id == 'canoness');
+      final canoness = sororitas.units.firstWhere((u) => u.id == 'canoness');
       expect(canoness.gameModes, isEmpty);
       expect(canoness.isMatchedPlay, isTrue);
     }, skip: skip);
@@ -46,8 +45,8 @@ void main() {
       // Hospitaller cannot join, because the attachment rules name the
       // matched-play sheet.
       final sororitas = loader.loadFaction('adepta-sororitas');
-      final real = sororitas.units
-          .firstWhere((u) => u.id == 'celestian-sacresants');
+      final real =
+          sororitas.units.firstWhere((u) => u.id == 'celestian-sacresants');
       final patrol = sororitas.units.firstWhere(
           (u) => u.id == 'sanctuary-guardians-celestian-sacresants');
 
@@ -125,8 +124,8 @@ void main() {
     final tau = loader.loadFaction('tau-empire');
     final shadowsun =
         tau.units.firstWhere((u) => u.id == 'commander-shadowsun');
-    final commander = tau.units
-        .firstWhere((u) => u.id == 'commander-in-enforcer-battlesuit');
+    final commander =
+        tau.units.firstWhere((u) => u.id == 'commander-in-enforcer-battlesuit');
 
     expect(shadowsun.isEpicHero, isTrue);
     expect(shadowsun.battlefieldRole, 'Epic Heroes');

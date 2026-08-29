@@ -166,12 +166,10 @@ class RosterResolver {
 
       final a = units.firstWhere((u) => u.instanceId == members[0]);
       final b = units.firstWhere((u) => u.instanceId == members[1]);
-      final aLeads = catalogue
-          .eligibleBodyguards(a.datasheetId)
-          .contains(b.datasheetId);
-      final bLeads = catalogue
-          .eligibleBodyguards(b.datasheetId)
-          .contains(a.datasheetId);
+      final aLeads =
+          catalogue.eligibleBodyguards(a.datasheetId).contains(b.datasheetId);
+      final bLeads =
+          catalogue.eligibleBodyguards(b.datasheetId).contains(a.datasheetId);
 
       if (aLeads || bLeads) {
         final leader = aLeads ? a : b;
@@ -241,8 +239,7 @@ class RosterResolver {
       ParsedList parsed, List<ResolutionIssue> issues) {
     final name = parsed.battleSizeName;
     if (name != null) {
-      final match =
-          bestMatch<BattleSize>(name, BattleSize.all, (b) => b.name);
+      final match = bestMatch<BattleSize>(name, BattleSize.all, (b) => b.name);
       if (match != null) return match.value;
     }
     issues.add(ResolutionIssue(
@@ -288,10 +285,9 @@ class RosterResolver {
       final weapon = catalogue.weapon(weaponId);
       if (weapon == null) continue;
       final suffix = '-${datasheet.id}';
-      final itemId =
-          weaponId.endsWith(suffix)
-              ? weaponId.substring(0, weaponId.length - suffix.length)
-              : weaponId;
+      final itemId = weaponId.endsWith(suffix)
+          ? weaponId.substring(0, weaponId.length - suffix.length)
+          : weaponId;
       weaponCandidates.add(_Candidate(itemId, weapon.name));
     }
 
@@ -309,7 +305,8 @@ class RosterResolver {
         ...datasheet.abilityIds,
         for (final budget in datasheet.wargearBudgets) ...budget.items,
       })
-        _Candidate(id, abilityLookup?.call(id)?.name ?? id.replaceAll('-', ' ')),
+        _Candidate(
+            id, abilityLookup?.call(id)?.name ?? id.replaceAll('-', ' ')),
     ];
 
     final modelNodes = <ParsedNode>[];
@@ -523,11 +520,11 @@ class RosterResolver {
     // The data suffixes a Unit Upgrade's name — `Negation Emitters (Upgrade)`
     // — where the export writes it plain, so both forms are tried.
     final match = bestMatch<SourceEnhancement>(
-      wanted,
-      catalogue.enhancements,
-      (e) => e.name,
-      threshold: 0.7,
-    ) ??
+          wanted,
+          catalogue.enhancements,
+          (e) => e.name,
+          threshold: 0.7,
+        ) ??
         bestMatch<SourceEnhancement>(
           wanted,
           catalogue.enhancements,

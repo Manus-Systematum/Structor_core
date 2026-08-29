@@ -299,8 +299,7 @@ void main() {
       final root = Directory(snapshotDir.path);
       if (!root.existsSync()) return;
       final loader = DatasetLoader(snapshotDir.path,
-          corrections:
-              DatasetLoader.correctionsAt(correctionsPath));
+          corrections: DatasetLoader.correctionsAt(correctionsPath));
 
       var total = 0, withText = 0;
       for (final factionId in loader.availableFactions()) {
@@ -325,8 +324,7 @@ void main() {
       final root = Directory(snapshotDir.path);
       if (!root.existsSync()) return;
       final loader = DatasetLoader(snapshotDir.path,
-          corrections:
-              DatasetLoader.correctionsAt(correctionsPath));
+          corrections: DatasetLoader.correctionsAt(correctionsPath));
 
       for (final factionId in loader.availableFactions()) {
         for (final s in loader.loadFaction(factionId).stratagems) {
@@ -349,8 +347,7 @@ void main() {
       final root = Directory(snapshotDir.path);
       if (!root.existsSync()) return;
       final loader = DatasetLoader(snapshotDir.path,
-          corrections:
-              DatasetLoader.correctionsAt(correctionsPath));
+          corrections: DatasetLoader.correctionsAt(correctionsPath));
 
       var withBullets = 0;
       for (final factionId in loader.availableFactions()) {

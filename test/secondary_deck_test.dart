@@ -7,7 +7,8 @@ import 'package:wh40k_core/wh40k_core.dart';
 
 import 'support.dart';
 
-MissionCard _card(String id, {List<Object?> awards = const [], Object? drawn}) =>
+MissionCard _card(String id,
+        {List<Object?> awards = const [], Object? drawn}) =>
     MissionCard.fromJson({
       'id': id,
       'name': id,

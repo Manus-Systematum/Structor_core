@@ -75,8 +75,7 @@ void main() {
     // The point of doing this at ingest: every consumer sees it cleaned, and
     // a marker reaching a screen is a bug nobody notices until a game.
     final loader = DatasetLoader(snapshotDir.path,
-        corrections:
-            DatasetLoader.correctionsAt(correctionsPath));
+        corrections: DatasetLoader.correctionsAt(correctionsPath));
     if (!loader.root.existsSync()) return;
 
     final offenders = <String>[];
@@ -112,8 +111,7 @@ void main() {
     // the non-datasheet container the detachments hang off, and the harvest
     // walked neither.
     final loader = DatasetLoader(snapshotDir.path,
-        corrections:
-            DatasetLoader.correctionsAt(correctionsPath));
+        corrections: DatasetLoader.correctionsAt(correctionsPath));
     if (!loader.root.existsSync()) return;
 
     var total = 0, described = 0;
@@ -150,8 +148,7 @@ void main() {
 
   test('no ability description carries a caret or a tripled marker', () {
     final loader = DatasetLoader(snapshotDir.path,
-        corrections:
-            DatasetLoader.correctionsAt(correctionsPath));
+        corrections: DatasetLoader.correctionsAt(correctionsPath));
     if (!loader.root.existsSync()) return;
 
     final offenders = <String>[];
@@ -172,8 +169,7 @@ void main() {
     // explanation, which carries no distance — so a Dominion Squad showed
     // "Scouts" with no number and never reached the Scout moves list.
     final loader = DatasetLoader(snapshotDir.path,
-        corrections:
-            DatasetLoader.correctionsAt(correctionsPath));
+        corrections: DatasetLoader.correctionsAt(correctionsPath));
     if (!loader.root.existsSync()) return;
 
     final sisters = loader.loadFaction('adepta-sororitas');
@@ -199,8 +195,7 @@ void main() {
     // on a handful — so one screen showed `5"` on a statline and `10` in the
     // move list, which reads as two different kinds of number.
     final loader = DatasetLoader(snapshotDir.path,
-        corrections:
-            DatasetLoader.correctionsAt(correctionsPath));
+        corrections: DatasetLoader.correctionsAt(correctionsPath));
     if (!loader.root.existsSync()) return;
 
     final offenders = <String>[];
@@ -222,8 +217,7 @@ void main() {
     // Patrol formation beside the real ones at 1 DP — `Sudden Dawn Cadre`
     // for T'au, `’Ardmob` for Orks, 24 of them in all.
     final loader = DatasetLoader(snapshotDir.path,
-        corrections:
-            DatasetLoader.correctionsAt(correctionsPath));
+        corrections: DatasetLoader.correctionsAt(correctionsPath));
     if (!loader.root.existsSync()) return;
 
     var patrolDetachments = 0, patrolUnits = 0;
@@ -261,8 +255,7 @@ void main() {
     expect(bsSlug('Kâhl'), 'kahl');
 
     final loader = DatasetLoader(snapshotDir.path,
-        corrections:
-            DatasetLoader.correctionsAt(correctionsPath));
+        corrections: DatasetLoader.correctionsAt(correctionsPath));
     if (!loader.root.existsSync()) return;
     for (final factionId in loader.availableFactions()) {
       final seen = <String, String>{};
@@ -285,8 +278,7 @@ void main() {
     // published mappings** were in that position.
     const renderer = RulesRenderer();
     final loader = DatasetLoader(snapshotDir.path,
-        corrections:
-            DatasetLoader.correctionsAt(correctionsPath));
+        corrections: DatasetLoader.correctionsAt(correctionsPath));
     if (!loader.root.existsSync()) return;
 
     final sisters =

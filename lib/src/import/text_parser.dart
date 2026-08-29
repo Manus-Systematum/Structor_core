@@ -14,14 +14,16 @@ import 'parsed_list.dart';
 class TextListParser {
   const TextListParser();
 
-  static final _header = RegExp(r'^(.*?)\s*\((\d+)\s*points?\)\s*$',
-      caseSensitive: false);
+  static final _header =
+      RegExp(r'^(.*?)\s*\((\d+)\s*points?\)\s*$', caseSensitive: false);
   static final _bullet = RegExp(r'^(\s*)[•\-\*]\s*(?:(\d+)\s*x\s*)?(.+?)\s*$',
       caseSensitive: false);
-  static final _detachments =
-      RegExp(r'^(.*?)\s*\((\d+)\s*Detachment Points?\)\s*$', caseSensitive: false);
-  static final _battleSize =
-      RegExp(r'^(.*?)\s*\((\d+)\s*Points?\s*(?:limit)?\)\s*$', caseSensitive: false);
+  static final _detachments = RegExp(
+      r'^(.*?)\s*\((\d+)\s*Detachment Points?\)\s*$',
+      caseSensitive: false);
+  static final _battleSize = RegExp(
+      r'^(.*?)\s*\((\d+)\s*Points?\s*(?:limit)?\)\s*$',
+      caseSensitive: false);
   static final _attachedGroup =
       RegExp(r'^Attached Unit\s+(\S+)\s*$', caseSensitive: false);
 

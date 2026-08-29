@@ -66,9 +66,19 @@ CrossCheckReport check({
       units: units ??
           [
             unit('Squad', [
-              {'models': 3, 'cost': 100, 'unit_count_min': 1, 'unit_count_max': 2},
-              {'models': 4, 'models_max': 6, 'cost': 200,
-                'unit_count_min': 1, 'unit_count_max': 2},
+              {
+                'models': 3,
+                'cost': 100,
+                'unit_count_min': 1,
+                'unit_count_max': 2
+              },
+              {
+                'models': 4,
+                'models_max': 6,
+                'cost': 200,
+                'unit_count_min': 1,
+                'unit_count_max': 2
+              },
               {'models': 3, 'cost': 110, 'unit_count_min': 3},
             ]),
             unit('Platform', [
@@ -119,7 +129,8 @@ void main() {
   group('comparison', () {
     test('matching data produces no divergences', () {
       final report = check();
-      expect(report.divergences, isEmpty, reason: report.divergences.join('\n'));
+      expect(report.divergences, isEmpty,
+          reason: report.divergences.join('\n'));
       expect(report.agrees, isTrue);
       expect(report.unitsCompared, 2);
       expect(report.detachmentsCompared, 1);
@@ -144,8 +155,13 @@ void main() {
       final report = check(units: [
         unit('Squad', [
           {'models': 3, 'cost': 95, 'unit_count_min': 1, 'unit_count_max': 2},
-          {'models': 4, 'models_max': 6, 'cost': 200,
-            'unit_count_min': 1, 'unit_count_max': 2},
+          {
+            'models': 4,
+            'models_max': 6,
+            'cost': 200,
+            'unit_count_min': 1,
+            'unit_count_max': 2
+          },
           {'models': 3, 'cost': 110, 'unit_count_min': 3},
         ]),
         unit('Platform', [
@@ -164,8 +180,13 @@ void main() {
       final report = check(units: [
         unit('Squad', [
           {'models': 3, 'cost': 100, 'unit_count_min': 1, 'unit_count_max': 2},
-          {'models': 4, 'models_max': 6, 'cost': 200,
-            'unit_count_min': 1, 'unit_count_max': 2},
+          {
+            'models': 4,
+            'models_max': 6,
+            'cost': 200,
+            'unit_count_min': 1,
+            'unit_count_max': 2
+          },
           {'models': 3, 'cost': 999, 'unit_count_min': 3},
         ]),
         unit('Platform', [
@@ -207,8 +228,8 @@ void main() {
       // rules difference.
       final report = check(det: detachment(tags: ['Battlesuits']));
       expect(
-        report.divergences.where(
-            (d) => d.kind == DivergenceKind.detachmentUniqueTag),
+        report.divergences
+            .where((d) => d.kind == DivergenceKind.detachmentUniqueTag),
         isEmpty,
       );
     });
@@ -233,7 +254,9 @@ void main() {
     CrossCheckReport withAccepted(List<AcceptedDivergence> accepted) =>
         CrossChecker(
           units: const [],
-          detachments: [detachment(tags: const ['retaliation'])],
+          detachments: [
+            detachment(tags: const ['retaliation'])
+          ],
           accepted: accepted,
         ).compare(MfmFaction.parse(_yaml), factionId: 'testers');
 

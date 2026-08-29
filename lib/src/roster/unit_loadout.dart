@@ -214,7 +214,7 @@ class UnitLoadout {
       if (option.isEnumeration) {
         groups.add(LoadoutGroup(
           optionId: option.id,
-          bundles: option.choices,
+          bundles: option.bundles,
           replaces: option.replaces,
           modelName: option.modelName,
         ));

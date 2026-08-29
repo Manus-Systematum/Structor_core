@@ -31,8 +31,8 @@ void main() {
       final tau = loader.loadFaction('tau-empire');
       catalogue = MapCatalogue.ofFaction(tau);
       editor = RosterEditor(catalogue);
-      upgrade = tau.enhancements
-          .firstWhere((e) => e.id == 'unmasking-suite-upgrade-advanced-acquisition-cadre');
+      upgrade = tau.enhancements.firstWhere(
+          (e) => e.id == 'unmasking-suite-upgrade-advanced-acquisition-cadre');
       roster = RosterEditor.blank(
         name: 'Stealth',
         factionId: 'tau-empire',
@@ -66,7 +66,8 @@ void main() {
         findings.errors.map((f) => f.code),
         isNot(contains('enhancement.non-character')),
       );
-      expect(findings.errors.map((f) => f.code), isNot(contains('upgrade.target-count')));
+      expect(findings.errors.map((f) => f.code),
+          isNot(contains('upgrade.target-count')));
     }, skip: skip);
 
     test('the old door leads to the same place, so no caller records it wrong',

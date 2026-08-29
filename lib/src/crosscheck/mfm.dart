@@ -27,7 +27,7 @@ class CopyRange {
     if (match == null) return const CopyRange(1, null);
     return CopyRange(
       int.tryParse(match.group(1)!) ?? 1,
-      int.tryParse(match.group(2) ?? '') ,
+      int.tryParse(match.group(2) ?? ''),
     );
   }
 

@@ -122,7 +122,8 @@ void main() {
 
     test('resolves duplicate caps per battle size', () {
       final dataset = load('tau-empire');
-      expect(dataset.maxCopies('riptide-battlesuit', BattleSize.strikeForce), 3);
+      expect(
+          dataset.maxCopies('riptide-battlesuit', BattleSize.strikeForce), 3);
       expect(dataset.maxCopies('riptide-battlesuit', BattleSize.incursion), 2);
       expect(dataset.maxCopies('the-twin-lance', BattleSize.strikeForce), 1,
           reason: 'Epic Heroes are capped at one regardless of battle size');

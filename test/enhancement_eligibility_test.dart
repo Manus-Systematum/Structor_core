@@ -46,8 +46,8 @@ void main() {
       expect(writ.isUpgrade, isTrue);
       expect(writ.canBeTakenBy(sacresants, factionName: 'Adepta Sororitas'),
           isTrue);
-      expect(
-          writ.canBeTakenBy(canoness, factionName: 'Adepta Sororitas'), isFalse);
+      expect(writ.canBeTakenBy(canoness, factionName: 'Adepta Sororitas'),
+          isFalse);
     }, skip: skip);
 
     test('a compound restriction is both halves', () {
@@ -56,14 +56,13 @@ void main() {
       final h = byName('Hagiomnifex');
       expect(h.keywordRestrictions, contains('Adepta Sororitas Character'));
       expect(h.canBeTakenBy(canoness, factionName: 'Adepta Sororitas'), isTrue);
-      expect(h.canBeTakenBy(sacresants, factionName: 'Adepta Sororitas'),
-          isFalse,
+      expect(
+          h.canBeTakenBy(sacresants, factionName: 'Adepta Sororitas'), isFalse,
           reason: 'a squad is not a Character');
     }, skip: skip);
 
     test('an Epic Hero takes none at all', () {
-      final heroes =
-          sororitas.units.where((u) => u.isEpicHero).toList();
+      final heroes = sororitas.units.where((u) => u.isEpicHero).toList();
       expect(heroes, isNotEmpty);
       for (final enhancement in sororitas.enhancements) {
         expect(
@@ -85,16 +84,15 @@ void main() {
     }, skip: skip);
   });
 
-  test('every faction keeps at least one enhancement it can actually take',
-      () {
+  test('every faction keeps at least one enhancement it can actually take', () {
     // The check that would have caught over-strictness: refusing on an
     // unreadable restriction is worse than allowing it, because it makes a
     // published enhancement impossible rather than merely permissive.
     for (final factionId in loader.availableFactions()) {
       final faction = loader.loadFaction(factionId);
       if (faction.enhancements.isEmpty || faction.units.isEmpty) continue;
-      final takeable = faction.enhancements.where((e) => faction.units.any(
-          (u) => e.canBeTakenBy(u, factionName: faction.factionName)));
+      final takeable = faction.enhancements.where((e) => faction.units
+          .any((u) => e.canBeTakenBy(u, factionName: faction.factionName)));
       expect(takeable, isNotEmpty, reason: factionId);
     }
   }, skip: skip);

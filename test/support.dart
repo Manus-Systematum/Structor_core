@@ -15,9 +15,9 @@ import 'package:wh40k_core/wh40k_core.dart';
 /// is green on a clone with no dataset beside it — testing what it can rather
 /// than pretending to test what it cannot.
 final dataRoot = Platform.environment['STRUCTOR_DATA'] ??
-    ['../Structor/data', '../Wh40k_Companion/data']
-        .firstWhere((at) => Directory(at).existsSync(),
-            orElse: () => '../Structor/data');
+    ['../Structor/data', '../Wh40k_Companion/data'].firstWhere(
+        (at) => Directory(at).existsSync(),
+        orElse: () => '../Structor/data');
 final correctionsPath = '$dataRoot-corrections.yaml';
 
 final snapshotDir = Directory('$dataRoot/merged');

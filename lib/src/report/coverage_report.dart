@@ -49,7 +49,8 @@ class CoverageReport {
     required this.findings,
   });
 
-  bool get hasErrors => findings.any((f) => f.severity == FindingSeverity.error);
+  bool get hasErrors =>
+      findings.any((f) => f.severity == FindingSeverity.error);
 
   int get errorCount =>
       findings.where((f) => f.severity == FindingSeverity.error).length;
@@ -169,8 +170,7 @@ class CoverageAnalyzer {
         summary: summary,
         count: broken.length,
         severity: severity,
-        examples:
-            broken.take(5).map((e) => '${e.from} -> ${e.to}').toList(),
+        examples: broken.take(5).map((e) => '${e.from} -> ${e.to}').toList(),
       ));
     }
 
@@ -368,13 +368,13 @@ class CoverageAnalyzer {
     final byName = <String, Set<String>>{};
     for (final w in faction.weapons) {
       for (final p in w.profiles) {
-        final display =
-            w.profiles.length > 1 && p.name != w.name ? '${w.name} - ${p.name}' : p.name;
+        final display = w.profiles.length > 1 && p.name != w.name
+            ? '${w.name} - ${p.name}'
+            : p.name;
         byName.putIfAbsent(display, () => <String>{}).add(p.profileKey);
       }
     }
-    final collisions =
-        byName.entries.where((e) => e.value.length > 1).toList();
+    final collisions = byName.entries.where((e) => e.value.length > 1).toList();
     if (collisions.isEmpty) return const [];
     return [
       Finding(
@@ -397,8 +397,9 @@ class CoverageAnalyzer {
   }
 
   List<Finding> _copyScaledPoints() {
-    final scaled =
-        faction.units.where((u) => u.points.any((p) => p.isCopyScaled)).toList();
+    final scaled = faction.units
+        .where((u) => u.points.any((p) => p.isCopyScaled))
+        .toList();
     if (scaled.isEmpty) return const [];
     return [
       Finding(
@@ -442,8 +443,8 @@ String formatReport(CoverageReport report) {
     ..writeln();
 
   b.writeln('counts');
-  final widest = report.counts.keys
-      .fold<int>(0, (w, k) => k.length > w ? k.length : w);
+  final widest =
+      report.counts.keys.fold<int>(0, (w, k) => k.length > w ? k.length : w);
   for (final e in report.counts.entries) {
     b.writeln('  ${e.key.padRight(widest)}  ${e.value}');
   }

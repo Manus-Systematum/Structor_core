@@ -31,8 +31,12 @@ void main() {
       expect(
         _text({
           'type': 'stat-modifier',
-          'modifier': {'stat': 'S', 'operation': 'add', 'value': 1,
-              'weapon_type': 'melee'},
+          'modifier': {
+            'stat': 'S',
+            'operation': 'add',
+            'value': 1,
+            'weapon_type': 'melee'
+          },
         }),
         '+1 Strength (melee).',
       );
@@ -166,11 +170,17 @@ void main() {
 
     test('saves and Feel No Pain keep their threshold notation', () {
       expect(
-        _text({'type': 'invulnerable-save', 'modifier': {'invuln_sv': 4}}),
+        _text({
+          'type': 'invulnerable-save',
+          'modifier': {'invuln_sv': 4}
+        }),
         '4+ invulnerable save.',
       );
       expect(
-        _text({'type': 'feel-no-pain', 'modifier': {'threshold': 5}}),
+        _text({
+          'type': 'feel-no-pain',
+          'modifier': {'threshold': 5}
+        }),
         'Feel No Pain 5+.',
       );
     });
@@ -182,7 +192,10 @@ void main() {
         _text({
           'type': 'conditional',
           'condition': {'type': 'damage-is-mortal'},
-          'effect': {'type': 'feel-no-pain', 'modifier': {'threshold': 4}},
+          'effect': {
+            'type': 'feel-no-pain',
+            'modifier': {'threshold': 4}
+          },
         }),
         'Against mortal wounds: Feel No Pain 4+.',
       );
@@ -434,7 +447,10 @@ void main() {
     test('an unrecognised condition is reported too', () {
       final rule = _render({
         'type': 'conditional',
-        'condition': {'type': 'moon-is-full', 'parameters': <String, Object?>{}},
+        'condition': {
+          'type': 'moon-is-full',
+          'parameters': <String, Object?>{}
+        },
         'effect': {'type': 'deep-strike', 'modifier': <String, Object?>{}},
       });
       expect(rule.unrendered, ['condition:moon-is-full']);
@@ -450,7 +466,10 @@ void main() {
   test('usage frequency is appended', () {
     expect(
       _render(
-        {'type': 'cp-gain', 'modifier': {'amount': 1}},
+        {
+          'type': 'cp-gain',
+          'modifier': {'amount': 1}
+        },
         usage: {'frequency': 'once-per-turn'},
       ).text,
       'Gain 1CP (once per turn).',
@@ -485,7 +504,8 @@ void main() {
         final result = coverageOf(faction);
         final percent = result.complete * 100 / result.total;
         expect(percent, greaterThan(90),
-            reason: '$faction at ${percent.round()}%: ${result.gaps.join(', ')}');
+            reason:
+                '$faction at ${percent.round()}%: ${result.gaps.join(', ')}');
       }
     }, skip: has('necrons') ? null : 'no snapshot');
   });

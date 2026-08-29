@@ -71,9 +71,10 @@ void main() {
     test('both detachment rules are there, rendered', () {
       final rules = index.of(ReferenceKind.detachmentRule);
       expect(rules, hasLength(2));
-      expect(rules.map((r) => r.source),
-          containsAll(['Advanced Acquisition Cadre',
-              'Experimental Prototype Cadre']));
+      expect(
+          rules.map((r) => r.source),
+          containsAll(
+              ['Advanced Acquisition Cadre', 'Experimental Prototype Cadre']));
       expect(rules.every((r) => r.body.isNotEmpty), isTrue);
     }, skip: available ? null : 'no snapshot');
 
@@ -106,11 +107,13 @@ void main() {
 
     test("another detachment's enhancements are not offered", () {
       final sources = index.of(ReferenceKind.enhancement).map((e) => e.source);
-      expect(sources, everyElement(anyOf(
-        'Advanced Acquisition Cadre',
-        'Experimental Prototype Cadre',
-        'Faction',
-      )));
+      expect(
+          sources,
+          everyElement(anyOf(
+            'Advanced Acquisition Cadre',
+            'Experimental Prototype Cadre',
+            'Faction',
+          )));
     }, skip: available ? null : 'no snapshot');
 
     test('search reaches across every kind at once', () {

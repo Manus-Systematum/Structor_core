@@ -51,8 +51,8 @@ void main() {
     late ParsedList parsed;
 
     setUpAll(() {
-      parsed = _parser.parse(
-          File('test/fixtures/war_organ_export.txt').readAsStringSync());
+      parsed = _parser
+          .parse(File('test/fixtures/war_organ_export.txt').readAsStringSync());
     });
 
     test('reads the preamble without mistaking it for units', () {
@@ -121,8 +121,7 @@ void main() {
     late Dataset dataset;
 
     setUp(() {
-      final faction =
-          correctedLoader().loadFaction('tau-empire');
+      final faction = correctedLoader().loadFaction('tau-empire');
       dataset = Dataset.of(faction, revision: 'test');
       result = RosterResolver(
         dataset,
@@ -156,16 +155,18 @@ void main() {
 
       // Direction matters: the Commander leads, not the other way round.
       final first = result.roster.links.first;
-      expect(dataset.unit(
-              result.roster.unitByInstance(first.fromInstanceId)!.datasheetId)!
-          .isLeader,
+      expect(
+          dataset
+              .unit(result.roster
+                  .unitByInstance(first.fromInstanceId)!
+                  .datasheetId)!
+              .isLeader,
           isTrue);
     }, skip: available ? null : 'no snapshot');
 
     test('the roster validates', () {
       final validation = RosterValidator(dataset).validate(result.roster);
-      expect(validation.errors, isEmpty,
-          reason: validation.errors.join('\n'));
+      expect(validation.errors, isEmpty, reason: validation.errors.join('\n'));
       expect(result.roster.warlordInstanceId, isNotNull);
       expect(result.roster.declaredDisposition, 'reconnaissance');
       expect(result.roster.battleSizeId, 'strike-force');
@@ -173,9 +174,8 @@ void main() {
     }, skip: available ? null : 'no snapshot');
 
     test('weapons resolve to the carrier-scoped profile', () {
-      final attached = result.roster
-          .combatUnits()
-          .firstWhere((g) => g.length == 2 && g.first.datasheetId.contains('enforcer'));
+      final attached = result.roster.combatUnits().firstWhere(
+          (g) => g.length == 2 && g.first.datasheetId.contains('enforcer'));
       final table = WeaponAggregator(dataset).aggregate(attached);
       expect(table.isComplete, isTrue);
       // The split that only exists if the Commander's pod resolved to its own
@@ -270,8 +270,7 @@ void main() {
 
     test('each bearer is charged for the upgrade', () {
       final cost = PointsCalculator(dataset).price(result.roster);
-      final charged =
-          cost.units.where((u) => u.enhancements > 0).toList();
+      final charged = cost.units.where((u) => u.enhancements > 0).toList();
       expect(charged, hasLength(2), reason: 'both Stealth units bear one');
       expect(charged.every((u) => u.enhancements == 15), isTrue);
     }, skip: available ? null : 'no snapshot');

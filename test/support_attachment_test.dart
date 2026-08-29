@@ -49,8 +49,7 @@ void main() {
       if (!root.existsSync()) return;
       final dataset = Dataset.of(loader.loadFaction('adepta-sororitas'));
       editor = RosterEditor(dataset);
-      roster = RosterEditor.blank(
-          name: 'test', factionId: 'adepta-sororitas');
+      roster = RosterEditor.blank(name: 'test', factionId: 'adepta-sororitas');
       roster = editor.addUnit(roster, 'canoness');
       roster = editor.addUnit(roster, 'hospitaller');
       roster = editor.addUnit(roster, 'battle-sisters-squad');
@@ -87,8 +86,7 @@ void main() {
 
     test('a squad with a Leader is still offered to a Support', () {
       final squad = idOf(roster, 'battle-sisters-squad');
-      final withLeader =
-          editor.attach(roster, idOf(roster, 'canoness'), squad);
+      final withLeader = editor.attach(roster, idOf(roster, 'canoness'), squad);
 
       final forSupport = editor.eligibleBodyguards(
           withLeader, idOf(withLeader, 'hospitaller'));

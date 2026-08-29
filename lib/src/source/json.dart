@@ -7,8 +7,9 @@
 /// should degrade one entity, not fail an entire faction.
 library;
 
-Map<String, dynamic> asMap(Object? v) =>
-    v is Map ? v.map((k, val) => MapEntry(k.toString(), val)) : <String, dynamic>{};
+Map<String, dynamic> asMap(Object? v) => v is Map
+    ? v.map((k, val) => MapEntry(k.toString(), val))
+    : <String, dynamic>{};
 
 List<Object?> asList(Object? v) => v is List ? v : const [];
 
