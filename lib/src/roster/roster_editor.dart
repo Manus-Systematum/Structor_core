@@ -554,20 +554,113 @@ class RosterEditor {
 
   /// Puts [enhancementId] on a unit, or removes it when [instanceId] is null.
   /// One bearer per enhancement, so an existing assignment is replaced.
+  ///
+  /// **A Unit Upgrade taken through this door goes where it belongs.** The two
+  /// share a record shape and are two mechanics (§2.1, §4.7.1), and the
+  /// builder had
+  /// only this method — so an upgrade taken on a Stealth Battlesuits was
+  /// written as an enhancement, and the validator then reported a legal list
+  /// as an enhancement on a non-Character. Routing here rather than only in
+  /// the caller means no future caller can record it wrong either.
   Roster setEnhancement(
     Roster roster,
     String enhancementId,
     String? instanceId,
-  ) =>
-      roster.copyWith(enhancements: [
-        for (final e in roster.enhancements)
-          if (e.enhancementId != enhancementId) e,
-        if (instanceId != null)
-          EnhancementSelection(
-            enhancementId: enhancementId,
-            targetInstanceId: instanceId,
-          ),
-      ]);
+  ) {
+    if (_isUpgrade(enhancementId)) {
+      // A null target has no unit to take it off, so it clears the selection
+      // outright — which is what "remove this enhancement" meant here.
+      return instanceId == null
+          ? _withUpgrades(roster, [
+              for (final u in roster.upgrades)
+                if (u.upgradeId != enhancementId) u
+            ])
+          : setUpgrade(roster, enhancementId, instanceId, on: true);
+    }
+    return roster.copyWith(enhancements: [
+      for (final e in roster.enhancements)
+        if (e.enhancementId != enhancementId) e,
+      if (instanceId != null)
+        EnhancementSelection(
+          enhancementId: enhancementId,
+          targetInstanceId: instanceId,
+        ),
+    ]);
+  }
+
+  /// Adds or removes one target of a Unit Upgrade.
+  ///
+  /// An Upgrade is **one selection with up to three targets**, not three
+  /// selections: that is what makes three instances share a slot while costing
+  /// points each (§2.1). So the units accumulate into a single
+  /// [UpgradeSelection], and the last one leaving takes the selection with it
+  /// — an empty target list is the shape the validator reports as an error,
+  /// and it must not be reachable by ordinary use.
+  ///
+  /// A fourth target is allowed and reported, not refused: the editor is
+  /// permissive and the validator is honest.
+  Roster setUpgrade(
+    Roster roster,
+    String upgradeId,
+    String instanceId, {
+    required bool on,
+  }) {
+    final targets = [
+      for (final u in roster.upgrades)
+        if (u.upgradeId == upgradeId) ...u.targetInstanceIds,
+    ];
+    final next = [
+      for (final id in targets)
+        if (id != instanceId) id,
+      if (on) instanceId,
+    ];
+    return _withUpgrades(roster, [
+      for (final u in roster.upgrades)
+        if (u.upgradeId != upgradeId) u,
+      if (next.isNotEmpty)
+        UpgradeSelection(upgradeId: upgradeId, targetInstanceIds: next),
+    ]);
+  }
+
+  /// Which units carry [upgradeId].
+  List<String> upgradeTargets(Roster roster, String upgradeId) => [
+        for (final u in roster.upgrades)
+          if (u.upgradeId == upgradeId) ...u.targetInstanceIds,
+      ];
+
+  /// Moves Unit Upgrades that were recorded as Enhancements to where they
+  /// belong, leaving everything else alone.
+  ///
+  /// Lists built before [setUpgrade] existed have them filed wrong, and the
+  /// symptom is an error on a legal army. This is applied when a saved list is
+  /// read rather than in a database migration, because only the catalogue
+  /// knows which of the two a record id is.
+  Roster reclassifyUpgrades(Roster roster) {
+    final misfiled = [
+      for (final e in roster.enhancements)
+        if (_isUpgrade(e.enhancementId)) e,
+    ];
+    if (misfiled.isEmpty) return roster;
+
+    var next = roster.copyWith(enhancements: [
+      for (final e in roster.enhancements)
+        if (!_isUpgrade(e.enhancementId)) e,
+    ]);
+    for (final e in misfiled) {
+      next = setUpgrade(next, e.enhancementId, e.targetInstanceId, on: true);
+    }
+    return next;
+  }
+
+  bool _isUpgrade(String id) {
+    for (final enhancement in catalogue.enhancements) {
+      if (enhancement.id == id) return enhancement.isUpgrade;
+    }
+    return false;
+  }
+
+  Roster _withUpgrades(Roster roster, List<UpgradeSelection> upgrades) =>
+      roster.copyWith(upgrades: upgrades);
 
   // --------------------------------------------------------------- helpers
 
