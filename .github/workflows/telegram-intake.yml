@@ -1,0 +1,33 @@
+name: Telegram intake
+
+# A data bug is noticed at a table, not at a desk. This turns a message to the
+# bot into an issue labelled `data-bug`, which is what the fixing routine
+# watches for.
+#
+# Every five minutes is GitHub's floor for scheduled workflows, and the offset
+# is deliberate: a cron on the hour is when every scheduled job on the platform
+# runs at once.
+
+on:
+  schedule:
+    - cron: '3,8,13,18,23,28,33,38,43,48,53,58 * * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+concurrency:
+  # Two runs draining the same queue would file the same message twice.
+  group: telegram-intake
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: tools/telegram-intake.sh
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ALLOWED_CHAT_ID: ${{ secrets.TELEGRAM_ALLOWED_CHAT_ID }}
+          GH_TOKEN: ${{ github.token }}
