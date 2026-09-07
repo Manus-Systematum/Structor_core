@@ -252,6 +252,21 @@ class UnitComposition {
   }
 }
 
+/// Keywords compared the way the rules compare them: case-insensitively,
+/// with either apostrophe, and with runs of whitespace collapsed.
+///
+/// Not fussiness. `factions.json` writes `T’au Empire` with a typographic
+/// apostrophe while 66 of that faction's own datasheets write `T'au Empire`
+/// with a typewriter one, and `Emperor’s Children` splits the same way — so a
+/// raw comparison makes a faction its own ally and refuses enhancements the
+/// datasheet plainly qualifies for.
+String foldKeyword(String value) => value
+    .toLowerCase()
+    .replaceAll('\u2019', "'")
+    .split(RegExp(r'\s+'))
+    .join(' ')
+    .trim();
+
 /// One published wargear choice for one datasheet (`wargear-options.json`).
 ///
 /// The file was fetched from the start and never parsed, because §2.3 settled
@@ -1031,12 +1046,7 @@ class SourceEnhancement {
     return true;
   }
 
-  static String _fold(String value) => value
-      .toLowerCase()
-      .replaceAll('’', "'")
-      .split(RegExp(r'\s+'))
-      .join(' ')
-      .trim();
+  static String _fold(String value) => foldKeyword(value);
 
   /// Exact, or a compound whose parts are each satisfied.
   static bool _satisfies(String restriction, Set<String> vocabulary) {

@@ -102,6 +102,10 @@ class FactionData {
   /// The faction's display name, from the same record.
   final String? factionName;
 
+  /// The army faction's own keywords, from `factions.json`. What makes a
+  /// datasheet in this bundle an ally is having none of them (§4.18).
+  final List<String> factionKeywords;
+
   /// The faction whose datasheets this one fields, or null when it has its
   /// own. The twelve Space Marine chapters publish detachments, stratagems
   /// and enhancements and no units at all (DESIGN.md §3.9).
@@ -129,6 +133,7 @@ class FactionData {
     this.wargearOptions = const [],
     this.factionRuleId,
     this.factionName,
+    this.factionKeywords = const [],
     this.parentFactionId,
     this.faqs = const [],
     required this.missingFiles,
@@ -309,6 +314,7 @@ class DatasetLoader {
       factionId: factionId,
       factionRuleId: self == null ? null : str(self['faction_rule_id']),
       factionName: self == null ? null : str(self['name']),
+      factionKeywords: self == null ? const [] : strList(self['keywords']),
       parentFactionId: parentId,
       units: corrections
           .applyToUnits(sheetOwner, sheets('core', 'units.json'))

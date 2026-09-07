@@ -108,6 +108,9 @@ class Dataset implements Catalogue {
   // ------------------------------------------------------------- Catalogue
 
   @override
+  List<String> get factionKeywords => faction.factionKeywords;
+
+  @override
   SourceUnit? unit(String datasheetId) => _units[datasheetId];
 
   @override

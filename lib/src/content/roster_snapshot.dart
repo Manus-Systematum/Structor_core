@@ -55,6 +55,14 @@ class RosterSnapshot {
   /// record is in [abilities]; this names which one it is (§7.3.9).
   final String? factionRuleId;
 
+  /// The army faction's own keywords, so a saved list can still tell its own
+  /// datasheets from its allies (§4.18).
+  ///
+  /// Absent from snapshots written before allies were checked. Empty is read
+  /// as "not known" and the ally checks are skipped, because an empty set
+  /// would make every datasheet in the list an ally of nothing.
+  final List<String> factionKeywords;
+
   /// Ability ids more than one datasheet **in the faction** can take.
   ///
   /// Whether a rule is shared is a fact about the catalogue, and a snapshot
@@ -73,6 +81,7 @@ class RosterSnapshot {
     this.enhancements = const {},
     this.phaseMappings = const {},
     this.factionRuleId,
+    this.factionKeywords = const [],
     this.sharedAbilities = const {},
   });
 
@@ -94,6 +103,7 @@ class RosterSnapshot {
         'enhancements': enhancements,
         'phaseMappings': phaseMappings,
         if (factionRuleId != null) 'factionRuleId': factionRuleId,
+        if (factionKeywords.isNotEmpty) 'factionKeywords': factionKeywords,
         'sharedAbilities': sharedAbilities.toList(growable: false),
       };
 
@@ -114,6 +124,7 @@ class RosterSnapshot {
       // rather than failing — `Update to current data` refills it (§4.6).
       phaseMappings: asMap(j['phaseMappings']),
       factionRuleId: str(j['factionRuleId']),
+      factionKeywords: strList(j['factionKeywords']),
       // Absent in snapshots written before rules were tiered. An older list
       // falls back to its own datasheets, which files a few more rules under
       // the unit that has them rather than failing to open.
@@ -274,6 +285,7 @@ class SnapshotBuilder {
       enhancements: enhancements,
       phaseMappings: phases,
       factionRuleId: factionRuleId,
+      factionKeywords: dataset.faction.factionKeywords,
       // Computed here, over the whole faction, because this is the last point
       // at which the whole faction is in hand.
       sharedAbilities: ArmyRules.sharedAcross(dataset.faction.units),

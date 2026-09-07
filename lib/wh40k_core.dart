@@ -18,6 +18,7 @@ export 'src/import/name_match.dart';
 export 'src/import/parsed_list.dart';
 export 'src/import/roster_resolver.dart';
 export 'src/import/text_parser.dart';
+export 'src/rules/ally_rules.dart';
 export 'src/missions/mission_pack.dart';
 export 'src/missions/mission_setup.dart';
 export 'src/missions/secondary_deck.dart';

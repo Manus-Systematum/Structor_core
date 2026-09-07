@@ -30,6 +30,13 @@ abstract interface class Catalogue {
   /// Enhancements and Unit Upgrades the army's detachments offer.
   Iterable<SourceEnhancement> get enhancements => const [];
 
+  /// The army faction's own keywords.
+  ///
+  /// Empty when the backing store does not know them — a snapshot written
+  /// before §4.18 — and every check that depends on them is skipped rather
+  /// than guessed, because an empty set would make every datasheet an ally.
+  List<String> get factionKeywords => const [];
+
   /// How a datasheet is made up, when the backing store knows. Only the
   /// builder needs it.
   UnitComposition? composition(String datasheetId) => null;
@@ -91,9 +98,14 @@ class MapCatalogue implements Catalogue {
   final Map<String, UnitComposition> _compositions;
   final Map<String, List<SourceWargearOption>> _wargearOptions;
   final Map<String, List<String>> _phases;
+  final List<String> _factionKeywords;
+
+  @override
+  List<String> get factionKeywords => _factionKeywords;
 
   MapCatalogue(
     Iterable<SourceUnit> units, {
+    List<String> factionKeywords = const [],
     Iterable<SourceDetachment> detachments = const [],
     Iterable<SourceWeapon> weapons = const [],
     Iterable<LeaderAttachment> leaderAttachments = const [],
@@ -102,7 +114,8 @@ class MapCatalogue implements Catalogue {
     Iterable<UnitComposition> compositions = const [],
     Iterable<SourceWargearOption> wargearOptions = const [],
     Iterable<PhaseMapping> phaseMappings = const [],
-  })  : _units = {for (final u in units) u.id: u},
+  })  : _factionKeywords = factionKeywords,
+        _units = {for (final u in units) u.id: u},
         _detachments = {for (final d in detachments) d.id: d},
         _weapons = {for (final w in weapons) w.id: w},
         _abilities = {for (final a in abilities) a.abilityId: a},
@@ -124,6 +137,7 @@ class MapCatalogue implements Catalogue {
   /// Builds a catalogue over a loaded faction snapshot.
   factory MapCatalogue.ofFaction(FactionData faction) => MapCatalogue(
         faction.units,
+        factionKeywords: faction.factionKeywords,
         detachments: faction.detachments,
         weapons: faction.weapons,
         leaderAttachments: faction.leaderAttachments,

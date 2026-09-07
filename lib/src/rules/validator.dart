@@ -12,6 +12,8 @@ library;
 
 import '../roster/points.dart';
 import '../roster/roster.dart';
+import '../source/source_models.dart';
+import 'ally_rules.dart';
 import 'battle_size.dart';
 import 'catalogue.dart';
 import '../roster/unit_loadout.dart';
@@ -83,9 +85,159 @@ class RosterValidator {
     _checkSlots(roster, battleSize, findings);
     _checkAttachments(roster, findings);
     _checkWargearLimits(roster, findings);
+    _checkAllies(roster, battleSize, cost, findings);
 
     findings.sort((a, b) => a.severity.index.compareTo(b.severity.index));
     return ValidationResult(findings: findings, cost: cost);
+  }
+
+
+  /// Units from a faction the army's own keyword does not cover (§4.18).
+  ///
+  /// **Reported, never refused**, like everything else here (§2.3). The
+  /// dataset ships allied datasheets inside the host faction's bundle — 361
+  /// of them across eleven factions — so they can be added; what was missing
+  /// was anything saying which are allowed, under what rule, and up to what.
+  ///
+  /// Silent when the catalogue does not know the army's own keywords. A
+  /// snapshot written before this existed has none, and an empty set would
+  /// make every datasheet in the list an ally.
+  void _checkAllies(
+    Roster roster,
+    BattleSize battleSize,
+    RosterCost cost,
+    List<ValidationFinding> findings,
+  ) {
+    final army = catalogue.factionKeywords;
+    if (army.isEmpty) return;
+
+    final taken = {for (final d in roster.detachments) d.detachmentId};
+    final pointsByRule = <String, int>{};
+    final countsByRule = <String, Map<String, int>>{};
+
+    for (final unit in roster.units) {
+      final datasheet = catalogue.unit(unit.datasheetId);
+      if (datasheet == null) continue;
+      if (!AllyRules.isAlly(datasheet, army)) continue;
+
+      final rule = AllyRules.admitting(datasheet, army);
+      if (rule == null) {
+        // **A warning, not an error, and the wording says why.** The other
+        // ally findings quote a rule back at you; this one reports the
+        // absence of one, and absence in this dataset is not proof. The
+        // Daemons bundle ships thirty Heretic Astartes datasheets and the
+        // only published rule admitting any of them covers the DAMNED ones —
+        // so an ordinary Chaos army lands here, and calling that illegal
+        // would be the app asserting something nobody published (§0, §2.3).
+        findings.add(ValidationFinding(
+          code: 'ally.not-permitted',
+          message: '${datasheet.name} is '
+              '${datasheet.factionKeywords.join(", ")}, and no rule in this '
+              'army says it may be included. Check your codex.',
+          severity: Severity.warning,
+          instanceIds: [unit.instanceId],
+        ));
+        continue;
+      }
+
+      // A rule bought with detachment points does nothing until it is bought.
+      if (rule.requiresDetachmentId case final needed?
+          when !taken.contains(needed)) {
+        final detachment = catalogue.detachment(needed);
+        findings.add(ValidationFinding(
+          code: 'ally.detachment-missing',
+          message: '${datasheet.name} needs ${rule.name}, which comes with '
+              'the ${detachment?.name ?? needed} detachment.',
+          severity: Severity.error,
+          instanceIds: [unit.instanceId],
+        ));
+        continue;
+      }
+
+      final excluded = [
+        for (final keyword in datasheet.keywords)
+          if (rule.excludedKeywords.contains(foldKeyword(keyword))) keyword,
+      ];
+      if (excluded.isNotEmpty) {
+        findings.add(ValidationFinding(
+          code: 'ally.excluded-keyword',
+          message: '${rule.name} does not admit '
+              '${excluded.join(", ")} units, and ${datasheet.name} is one.',
+          severity: Severity.error,
+          instanceIds: [unit.instanceId],
+        ));
+      }
+
+      if (rule.alliesTakeNoEnhancements &&
+          roster.enhancements
+              .any((e) => e.targetInstanceId == unit.instanceId)) {
+        findings.add(ValidationFinding(
+          code: 'ally.enhancement',
+          message: '${datasheet.name} is included by ${rule.name}, which '
+              'gives its units no Enhancements.',
+          severity: Severity.error,
+          instanceIds: [unit.instanceId],
+        ));
+      }
+
+      if (rule.warlordMustBeHost &&
+          roster.warlordInstanceId == unit.instanceId) {
+        findings.add(ValidationFinding(
+          code: 'ally.warlord',
+          message: '${datasheet.name} is your Warlord, and ${rule.name} '
+              'requires one of your own.',
+          severity: Severity.error,
+          instanceIds: [unit.instanceId],
+        ));
+      }
+
+      pointsByRule[rule.abilityId] = (pointsByRule[rule.abilityId] ?? 0) +
+          cost.units
+              .where((c) => c.instanceId == unit.instanceId)
+              .fold(0, (sum, c) => sum + c.total);
+
+      final caps = rule.unitCap[battleSize.id];
+      if (caps != null) {
+        // A datasheet whose own ability exempts it is not counted.
+        if (datasheet.abilityIds.any(rule.exemptAbilityIds.contains)) continue;
+        final counts =
+            countsByRule.putIfAbsent(rule.abilityId, () => <String, int>{});
+        for (final keyword in datasheet.keywords) {
+          final folded = foldKeyword(keyword);
+          if (caps.containsKey(folded)) {
+            counts[folded] = (counts[folded] ?? 0) + 1;
+          }
+        }
+      }
+    }
+
+    for (final rule in AllyRules.all) {
+      if (rule.pointsCap[battleSize.id] case final cap?) {
+        final spent = pointsByRule[rule.abilityId] ?? 0;
+        if (spent > cap) {
+          findings.add(ValidationFinding(
+            code: 'ally.over-points',
+            message: '$spent points of ${rule.name} units, of $cap at '
+                '${battleSize.name}.',
+            severity: Severity.error,
+          ));
+        }
+      }
+      final caps = rule.unitCap[battleSize.id];
+      final counts = countsByRule[rule.abilityId];
+      if (caps == null || counts == null) continue;
+      for (final entry in counts.entries) {
+        final cap = caps[entry.key];
+        if (cap != null && entry.value > cap) {
+          findings.add(ValidationFinding(
+            code: 'ally.over-count',
+            message: '${entry.value} ${entry.key.toUpperCase()} units of '
+                '${rule.name}, of $cap at ${battleSize.name}.',
+            severity: Severity.error,
+          ));
+        }
+      }
+    }
   }
 
   /// Wargear taken past what the datasheet allows.
