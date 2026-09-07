@@ -294,7 +294,8 @@ abstract final class AllyRules {
   /// units"* — and `Anhrathe` is published as a plain keyword on datasheets
   /// whose faction keyword is `Asuryani`. Reading only faction keywords would
   /// refuse every Corsair unit the Drukhari rule exists to admit.
-  static AllyRule? admitting(SourceUnit unit, Iterable<String> factionKeywords) {
+  static AllyRule? admitting(
+      SourceUnit unit, Iterable<String> factionKeywords) {
     final unitKeywords = {
       for (final k in unit.factionKeywords) foldKeyword(k),
       for (final k in unit.keywords) foldKeyword(k),

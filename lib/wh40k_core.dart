@@ -24,6 +24,7 @@ export 'src/missions/mission_setup.dart';
 export 'src/missions/secondary_deck.dart';
 export 'src/missions/terrain_layout.dart';
 export 'src/play/army_rules.dart';
+export 'src/play/rule_reach.dart';
 export 'src/play/attacks.dart';
 export 'src/play/reference_index.dart';
 export 'src/play/rule_text.dart';

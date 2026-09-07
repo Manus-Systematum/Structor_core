@@ -91,7 +91,6 @@ class RosterValidator {
     return ValidationResult(findings: findings, cost: cost);
   }
 
-
   /// Units from a faction the army's own keyword does not cover (§4.18).
   ///
   /// **Reported, never refused**, like everything else here (§2.3). The

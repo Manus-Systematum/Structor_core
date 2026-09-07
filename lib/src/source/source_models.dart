@@ -260,6 +260,22 @@ class UnitComposition {
 /// with a typewriter one, and `Emperor’s Children` splits the same way — so a
 /// raw comparison makes a faction its own ally and refuses enhancements the
 /// datasheet plainly qualifies for.
+/// Whether [restriction] is satisfied by [vocabulary], exactly or as a
+/// compound whose parts each are — `adepta sororitas character` is the faction
+/// keyword and `Character` run together, and the rules write targets that way
+/// in enhancement restrictions and in their own prose alike.
+bool satisfiesKeyword(String restriction, Set<String> vocabulary) {
+  if (vocabulary.contains(restriction)) return true;
+  final words = restriction.split(' ');
+  for (var i = 1; i < words.length; i++) {
+    if (vocabulary.contains(words.take(i).join(' ')) &&
+        satisfiesKeyword(words.skip(i).join(' '), vocabulary)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 String foldKeyword(String value) => value
     .toLowerCase()
     .replaceAll('\u2019', "'")
@@ -1048,18 +1064,8 @@ class SourceEnhancement {
 
   static String _fold(String value) => foldKeyword(value);
 
-  /// Exact, or a compound whose parts are each satisfied.
-  static bool _satisfies(String restriction, Set<String> vocabulary) {
-    if (vocabulary.contains(restriction)) return true;
-    final words = restriction.split(' ');
-    for (var i = 1; i < words.length; i++) {
-      if (vocabulary.contains(words.take(i).join(' ')) &&
-          _satisfies(words.skip(i).join(' '), vocabulary)) {
-        return true;
-      }
-    }
-    return false;
-  }
+  static bool _satisfies(String restriction, Set<String> vocabulary) =>
+      satisfiesKeyword(restriction, vocabulary);
 
   /// `T'AU EMPIRE, not SHAPER` — who may take it, in one line.
   String get restrictionSummary {
@@ -1078,6 +1084,22 @@ class SourceDetachment {
   final String name;
   final String factionId;
   final String? detachmentRuleId;
+
+  /// The plural form, which 18 detachments publish and 210 do not.
+  ///
+  /// Two shapes for one fact: `detachment_rule_id` names one rule and
+  /// `detachment_rule_ids` names several. Ten detachments — Brood Brothers
+  /// Auxilia among them — publish **only** the plural, so reading the
+  /// singular alone showed them as having no detachment rules at all.
+  final List<String> detachmentRuleIds;
+
+  /// Every rule this detachment brings, from either field, in order and
+  /// without repeats.
+  List<String> get ruleIds => [
+        if (detachmentRuleId case final id?) id,
+        for (final id in detachmentRuleIds)
+          if (id != detachmentRuleId) id,
+      ];
   final int detachmentPoints;
   final List<String> forceDispositions;
   final List<String> uniqueTags;
@@ -1094,6 +1116,7 @@ class SourceDetachment {
     required this.name,
     required this.factionId,
     required this.detachmentRuleId,
+    this.detachmentRuleIds = const [],
     required this.detachmentPoints,
     required this.forceDispositions,
     required this.uniqueTags,
@@ -1110,6 +1133,7 @@ class SourceDetachment {
       name: strOr(j['name'], '(unnamed)'),
       factionId: strOr(j['faction_id'], ''),
       detachmentRuleId: str(j['detachment_rule_id']),
+      detachmentRuleIds: strList(j['detachment_rule_ids']),
       detachmentPoints: intOr(j['detachment_points'], 0),
       forceDispositions: strList(j['force_dispositions']),
       uniqueTags: strList(pick(j, ['unique_tags', 'tags'])),

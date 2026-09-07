@@ -120,8 +120,8 @@ void main() {
     test('Astra Militarum in a Cult bundle is an ally', () {
       if (!root.existsSync()) return;
       final cult = loader.loadFaction('genestealer-cults');
-      final guard = cult.units.firstWhere(
-          (u) => u.factionKeywords.contains('Astra Militarum'));
+      final guard = cult.units
+          .firstWhere((u) => u.factionKeywords.contains('Astra Militarum'));
 
       expect(AllyRules.isAlly(guard, cult.factionKeywords), isTrue);
       expect(AllyRules.admitting(guard, cult.factionKeywords)?.abilityId,
@@ -140,8 +140,8 @@ void main() {
     });
 
     Roster withGuard({String? detachmentId}) {
-      var roster = RosterEditor.blank(
-          name: 'p', factionId: 'genestealer-cults');
+      var roster =
+          RosterEditor.blank(name: 'p', factionId: 'genestealer-cults');
       if (detachmentId != null) {
         roster = editor.addDetachment(roster, detachmentId);
       }
@@ -167,8 +167,8 @@ void main() {
 
       expect(findings.errors.map((f) => f.code),
           isNot(contains('ally.detachment-missing')));
-      expect(
-          findings.errors.map((f) => f.code), isNot(contains('ally.not-permitted')));
+      expect(findings.errors.map((f) => f.code),
+          isNot(contains('ally.not-permitted')));
     }, skip: skip);
 
     test('an excluded keyword is reported by name', () {
@@ -191,8 +191,7 @@ void main() {
           contains('ally.excluded-keyword'));
     }, skip: skip);
 
-    test('an allied Warlord is reported where the rule wants one of yours',
-        () {
+    test('an allied Warlord is reported where the rule wants one of yours', () {
       if (!root.existsSync()) return;
       // setWarlord refuses a non-Character, so the ally has to be one for the
       // check to have anything to report.
@@ -211,8 +210,8 @@ void main() {
 
     test('the army own datasheets say nothing at all', () {
       if (!root.existsSync()) return;
-      final own = cult.allUnits.firstWhere(
-          (u) => u.factionKeywords.contains('Genestealer Cults'));
+      final own = cult.allUnits
+          .firstWhere((u) => u.factionKeywords.contains('Genestealer Cults'));
       final roster = editor.addUnit(
         RosterEditor.blank(name: 'p', factionId: 'genestealer-cults'),
         own.id,
