@@ -48,6 +48,10 @@ final _gdmPath = '$dataRoot/gdm/cards.json';
 final _wahapediaPath = '$dataRoot/stratagem-text/wahapedia-stratagems.csv';
 final _coreStratagemPath = '$dataRoot/stratagem-text/core-stratagems.json';
 
+/// Detachment rules as Wahapedia publishes them, fetched by the same tool.
+final _detachmentRulePath =
+    '$dataRoot/stratagem-text/wahapedia-detachment-rules.csv';
+
 /// Enhancements whose printed wording could not be found by name, with
 /// suggestions — and the hand-made matches for them.
 ///
@@ -242,6 +246,8 @@ void main(List<String> args) {
         'printed text');
     stdout.writeln('${_applyStratagemText(factions)} stratagems given their '
         'printed text');
+    stdout.writeln('${_applyDetachmentRuleText(factions)} detachment rules '
+        'given the text Wahapedia prints for them');
     stdout.writeln('${_applyKeywordText()} weapon keywords given their '
         'printed text');
     File(_conflictsPath)
@@ -984,6 +990,198 @@ Map<String, String> _bsRuleText() {
   return out;
 }
 
+/// A detachment rule's printed text, where ours is missing or is a different
+/// rule altogether (DESIGN.md §3.37).
+///
+/// **This is not a general override.** Of 236 detachment rules that join,
+/// 180 already agree with Wahapedia word for word and 30 differ only in
+/// wording — and where they differ ours usually reads better, because BSData
+/// keeps the bullets that Wahapedia's export runs into one line. Replacing
+/// those would be trading one transcription for another and importing
+/// Wahapedia's own damage with it: five of its rows have capitals corrupted
+/// mid-keyword, `ADEPTUS ARbITES`.
+///
+/// Two cases are worth overriding, and only two:
+///
+///   **ours is empty** — twelve rules the app had nothing at all to show for;
+///   **ours is a different rule** — the text shares almost nothing with what
+///   Wahapedia prints under that name. `ride-the-wind` is the case this was
+///   written for: BSData publishes the Windrider Host detachment rule and the
+///   Autarch Skyrunner's ability under one slug, the wrong one wins the
+///   merge, and an Aeldari player reads the Autarch's rule on the detachment.
+///   Wahapedia keeps the two in separate tables and so can say which is which.
+int _applyDetachmentRuleText(List<String> factions) {
+  final published = _readDetachmentRules();
+  if (published.isEmpty) return 0;
+
+  var written = 0;
+  for (final factionId in factions) {
+    final wahapediaId = _wahapediaFactionOf(factionId);
+    if (wahapediaId == null) continue;
+    final path = '$_outRoot/enrichment/$factionId/abilities.json';
+    final records = _readArray(path);
+    if (records.isEmpty) continue;
+
+    var touched = 0;
+    final updated = [
+      for (final raw in records)
+        if (asMap(raw) case final record)
+          () {
+            if (strOr(record['ability_type'], '') != 'detachment') return record;
+            final key = (wahapediaId, _stratagemKey(strOr(record['name'], '')));
+            final theirs = published[key];
+            if (theirs == null || theirs.isEmpty) return record;
+
+            final ours = strOr(record['description'], '');
+            if (ours.trim().isNotEmpty && !_isADifferentRule(ours, theirs)) {
+              return record;
+            }
+            touched++;
+            return {
+              ...record,
+              'description': theirs,
+              'description_from': 'wahapedia',
+            };
+          }()
+    ];
+    if (touched > 0) {
+      _write(path, updated);
+      written += touched;
+    }
+  }
+  return written;
+}
+
+/// Whether two texts are different rules rather than two wordings of one.
+///
+/// **Words shared, not characters.** Character bigrams were the first attempt
+/// and they cannot tell these apart: any two pieces of English rules text
+/// share `th`, `he` and `in` in bulk, so the Autarch Skyrunner's ability and
+/// the Windrider Host's scored as near neighbours. Words shared as a fraction
+/// of words written — Dice's coefficient over the word multiset — separates
+/// them cleanly.
+///
+/// Measured over the 213 detachment rules that join and have text on both
+/// sides: 178 score 1.0, the tail runs down through 0.9 to 0.29, and one sits
+/// at 0.11. The 0.29 is Cogbound Alliance, where ours summarises what
+/// Wahapedia spells out — the same rule. The 0.11 is `ride-the-wind`, which is
+/// not. So the line is drawn at 0.2, in a gap with nothing in it, rather than
+/// at a value that would start deciding cases.
+bool _isADifferentRule(String ours, String theirs) {
+  Map<String, int> words(String value) {
+    final out = <String, int>{};
+    for (final match
+        in RegExp(r'[a-z0-9]+').allMatches(value.toLowerCase())) {
+      final word = match.group(0)!;
+      out[word] = (out[word] ?? 0) + 1;
+    }
+    return out;
+  }
+
+  final left = words(ours);
+  final right = words(theirs);
+  if (left.isEmpty || right.isEmpty) return false;
+
+  var shared = 0;
+  var total = 0;
+  for (final entry in left.entries) {
+    total += entry.value;
+    final other = right[entry.key];
+    if (other != null) shared += entry.value < other ? entry.value : other;
+  }
+  for (final entry in right.entries) {
+    total += entry.value;
+  }
+  return 2 * shared / total < 0.2;
+}
+
+/// `(faction, folded rule name) -> printed text`.
+Map<(String, String), String> _readDetachmentRules() {
+  final file = File(_detachmentRulePath);
+  if (!file.existsSync()) return {};
+  final lines = const LineSplitter().convert(file.readAsStringSync());
+  if (lines.isEmpty) return {};
+
+  final header = lines.first.replaceFirst('\u{feff}', '').split('|');
+  final index = {for (final (i, h) in header.indexed) h.trim(): i};
+  String field(List<String> row, String name) {
+    final at = index[name];
+    return at != null && at < row.length ? row[at] : '';
+  }
+
+  final out = <(String, String), String>{};
+  for (final line in lines.skip(1)) {
+    if (line.trim().isEmpty) continue;
+    final row = line.split('|');
+    final name = _stratagemKey(field(row, 'name'));
+    final faction = field(row, 'faction_id').trim();
+    if (name.isEmpty || faction.isEmpty) continue;
+    final text = _markup(_uncorruptKeywords(field(row, 'description')));
+    if (text.isEmpty) continue;
+    out.putIfAbsent((faction, name), () => text);
+  }
+  return out;
+}
+
+/// **Wahapedia's own damage, repaired before it is imported.** Five rows
+/// carry a lowercase letter inside a keyword — `ADEPTUS ARbITES`,
+/// `INqUISITOR` — and a keyword is upper case throughout, which is what the
+/// `kwb` span it sits in means. Taking their text without this would trade
+/// one faction's wrong rule for another faction's wrong spelling.
+String _uncorruptKeywords(String html) => html.replaceAllMapped(
+      RegExp(r'<span class="kwb">(.*?)</span>', dotAll: true),
+      (match) => '<span class="kwb">${match.group(1)!.toUpperCase()}</span>',
+    );
+
+/// Wahapedia's id for one of our factions, or null when it files none.
+String? _wahapediaFactionOf(String factionId) {
+  final path = '$_outRoot/core/$factionId/factions.json';
+  for (final raw in _readArray(path)) {
+    final record = asMap(raw);
+    if (strOr(record['id'], '') != factionId) continue;
+    final name = _stratagemKey(strOr(record['name'], ''));
+    final known = _wahapediaFactionIds();
+    if (known[name] case final id?) return id;
+    // A chapter with no export of its own reads as its parent, the same way
+    // it fields its parent's datasheets (§3.10).
+    if (strOr(record['parent_faction_id'], '') == 'adeptus-astartes') {
+      return 'SM';
+    }
+  }
+  return null;
+}
+
+Map<String, String>? _wahapediaFactionCache;
+
+Map<String, String> _wahapediaFactionIds() {
+  if (_wahapediaFactionCache case final cached?) return cached;
+  final out = <String, String>{
+    // Wahapedia files one Space Marine faction; we file a chapter each, and
+    // it calls two factions by another name than the dataset does.
+    'adeptusastartes': 'SM',
+    'agentsoftheimperium': 'AoI',
+  };
+  final file = File('$dataRoot/wahapedia/Factions.csv');
+  if (file.existsSync()) {
+    final lines = const LineSplitter().convert(file.readAsStringSync());
+    if (lines.isNotEmpty) {
+      final header = lines.first.replaceFirst('\u{feff}', '').split('|');
+      final index = {for (final (i, h) in header.indexed) h.trim(): i};
+      for (final line in lines.skip(1)) {
+        final row = line.split('|');
+        final id = index['id'] != null && index['id']! < row.length
+            ? row[index['id']!].trim()
+            : '';
+        final name = index['name'] != null && index['name']! < row.length
+            ? _stratagemKey(row[index['name']!])
+            : '';
+        if (id.isNotEmpty && name.isNotEmpty) out.putIfAbsent(name, () => id);
+      }
+    }
+  }
+  return _wahapediaFactionCache = out;
+}
+
 int _applyStratagemText(List<String> factions) {
   final wahapedia = _readWahapedia();
   final core = _readCoreStratagems();
@@ -1156,6 +1354,14 @@ Map<String, String> _readCoreStratagems() {
 /// where the card has eight bullets. The Core Rules transcription uses `▪`
 /// for the same job, so both become the same bullet.
 String _markup(String value) => value
+    // **A table has to keep its grid, or its cells run into each other.**
+    // Stripping the tags alone turned the Windrider Host's battle-size table
+    // into `**BATTLE SIZE****NUMBER OF UNITS**Incursion**1**`, where the bold
+    // markers of neighbouring cells collide into an unreadable run.
+    .replaceAll(RegExp(r'</t[dh]>\s*<t[dh][^>]*>', caseSensitive: false), ' | ')
+    .replaceAll(RegExp(r'</tr>\s*<tr[^>]*>', caseSensitive: false), '\n')
+    .replaceAll(RegExp(r'</?(?:table|thead|tbody|tfoot|tr|t[dh])[^>]*>',
+        caseSensitive: false), '\n')
     .replaceAll(RegExp(r'</li>\s*<li>', caseSensitive: false), '\n• ')
     .replaceAll(RegExp(r'<ul>\s*<li>', caseSensitive: false), '\n• ')
     .replaceAll(RegExp(r'</li>\s*</ul>', caseSensitive: false), '\n')
