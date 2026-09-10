@@ -149,8 +149,9 @@ class DatasetLoader {
   /// came from upstream, which is what the cross-check wants.
   final DataCorrections corrections;
 
-  DatasetLoader(String rootPath, {this.corrections = DataCorrections.empty})
-      : root = Directory(rootPath);
+  DatasetLoader(String rootPath, {DataCorrections? corrections})
+      : corrections = corrections ?? DataCorrections.empty,
+        root = Directory(rootPath);
 
   /// Reads corrections from [path], or none if the file is absent.
   static DataCorrections correctionsAt(String path) {
@@ -165,7 +166,13 @@ class DatasetLoader {
     if (!file.existsSync()) return null;
     try {
       final decoded = jsonDecode(file.readAsStringSync());
-      return decoded is List ? decoded : null;
+      if (decoded is! List) return null;
+      // **Spelling is corrected on the way in, for every file alike.** Every
+      // other correction names the record it applies to; a misspelling is in
+      // whatever sentence upstream typed it into — an ability's text, a
+      // stratagem's, an FAQ answer — so it is applied here, where every file
+      // passes through, rather than wired into each reader (§3.36).
+      return corrections.respellAll(decoded)! as List<Object?>;
     } on FormatException {
       return null;
     }

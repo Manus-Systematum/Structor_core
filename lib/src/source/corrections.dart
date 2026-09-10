@@ -135,6 +135,39 @@ class UnitCorrection implements Correction {
   });
 }
 
+/// A word upstream misspells, and what it should read.
+///
+/// **Spelling is the one correction that needs no judgement about the game.**
+/// Every entry here was found by the dataset disagreeing with a dictionary and
+/// with its own usage — `abilty` against 28,565 uses of `ability` — never by
+/// somebody deciding a word looked wrong (§0). The rules text is what a player
+/// reads mid-game, and a rule that says a unit is not *eligibile* to declare a
+/// *chare* is a rule they have to stop and translate.
+class SpellingCorrection implements Correction {
+  /// Always `*`: a misspelling is not a property of a faction, and the same
+  /// sentence is copied into thirty-four faction files.
+  @override
+  String get faction => '*';
+
+  final String wrong;
+  final String right;
+
+  @override
+  final String reason;
+
+  final String? upstream;
+
+  @override
+  String get subject => wrong;
+
+  const SpellingCorrection({
+    required this.wrong,
+    required this.right,
+    required this.reason,
+    this.upstream,
+  });
+}
+
 /// A weapon record upstream is missing, or has wrong.
 ///
 /// Needed because an ability can name a weapon that does not exist: the Recon
@@ -304,25 +337,30 @@ class CorrectionResult {
 class DataCorrections {
   final List<AbilityCorrection> abilities;
   final List<UnitCorrection> units;
+
+  /// Words upstream misspells (§3.36).
+  final List<SpellingCorrection> spellings;
   final List<WeaponCorrection> weapons;
   final List<EnhancementCorrection> enhancements;
   final List<PhaseMappingCorrection> phaseMappings;
   final List<AliasCorrection> aliases;
 
-  const DataCorrections({
+  DataCorrections({
     this.abilities = const [],
     this.units = const [],
+    this.spellings = const [],
     this.weapons = const [],
     this.enhancements = const [],
     this.phaseMappings = const [],
     this.aliases = const [],
   });
 
-  static const empty = DataCorrections();
+  static final empty = DataCorrections();
 
   bool get isEmpty =>
       abilities.isEmpty &&
       units.isEmpty &&
+      spellings.isEmpty &&
       weapons.isEmpty &&
       enhancements.isEmpty &&
       phaseMappings.isEmpty &&
@@ -434,6 +472,65 @@ class DataCorrections {
       applied: applied,
       unmatched: unmatched,
     );
+  }
+
+  /// Every misspelling as one pass, built once and reused: the loader walks
+  /// every string of every file through this, and recompiling 18 patterns per
+  /// string turned a 200 ms load into a 4 s one.
+  late final RegExp? _spellingPattern = spellings.isEmpty
+      ? null
+      : RegExp(
+          r'\b(?:' +
+              spellings.map((s) => RegExp.escape(s.wrong)).join('|') +
+              r')\b',
+          caseSensitive: false,
+        );
+
+  late final Map<String, String> _spellingByWrong = {
+    for (final spelling in spellings)
+      spelling.wrong.toLowerCase(): spelling.right,
+  };
+
+  /// [text] with every misspelling corrected, keeping the case it was written
+  /// in.
+  ///
+  /// **Case is copied from what was there**, because the same word arrives
+  /// sentence-cased, lower-cased and shouted: `Abilty`, `abilty` and `ABILTY`
+  /// are one entry, and replacing all three with `ability` would quietly
+  /// rewrite a keyword into prose.
+  String respell(String text) {
+    final pattern = _spellingPattern;
+    if (pattern == null) return text;
+    return text.replaceAllMapped(pattern, (match) {
+      final found = match.group(0)!;
+      final right = _spellingByWrong[found.toLowerCase()];
+      if (right == null) return found;
+      if (found == found.toUpperCase() && found != found.toLowerCase()) {
+        return right.toUpperCase();
+      }
+      if (found[0] == found[0].toUpperCase()) {
+        return right[0].toUpperCase() + right.substring(1);
+      }
+      return right;
+    });
+  }
+
+  /// [json] with every string in it respelled, structure untouched.
+  Object? respellAll(Object? json) {
+    if (spellings.isEmpty) return json;
+    Object? walk(Object? node) => switch (node) {
+          final String text => respell(text),
+          final List<Object?> list => [for (final item in list) walk(item)],
+          final Map<String, Object?> map => {
+              for (final entry in map.entries) entry.key: walk(entry.value),
+            },
+          final Map<Object?, Object?> map => {
+              for (final entry in map.entries)
+                entry.key.toString(): walk(entry.value),
+            },
+          _ => node,
+        };
+    return walk(json);
   }
 
   /// Applies unit corrections to raw `units.json` records.
@@ -821,6 +918,27 @@ class DataCorrections {
       }
     }
 
+    final spellings = <SpellingCorrection>[];
+    final rawSpellings = root['spellings'];
+    if (rawSpellings is List) {
+      for (final node in rawSpellings) {
+        if (node is! Map) continue;
+        final wrong = node['wrong']?.toString().trim() ?? '';
+        final right = node['right']?.toString().trim() ?? '';
+        final reason = node['reason']?.toString().trim() ?? '';
+        // A rule with no reason is a private edit, and one that replaces a
+        // word with itself would loop.
+        if (wrong.isEmpty || right.isEmpty || reason.isEmpty) continue;
+        if (wrong.toLowerCase() == right.toLowerCase()) continue;
+        spellings.add(SpellingCorrection(
+          wrong: wrong,
+          right: right,
+          reason: reason,
+          upstream: node['upstream']?.toString(),
+        ));
+      }
+    }
+
     final weapons = <WeaponCorrection>[];
     final rawWeapons = root['weapons'];
     if (rawWeapons is List) {
@@ -909,6 +1027,7 @@ class DataCorrections {
     return DataCorrections(
       abilities: abilities,
       units: units,
+      spellings: spellings,
       weapons: weapons,
       enhancements: enhancements,
       phaseMappings: phaseMappings,
