@@ -138,8 +138,18 @@ class TerrainTemplate {
   /// carry `EF`+`GH`, `AB`+`Corner` and `Small L`+`CD` between them, each at
   /// two rotations 180° apart so the two placements cross-check each other.
   ///
-  /// The value indexes the centred rectangle footprint, whose vertices run
-  /// `0:(-w,-h) 1:(+w,-h) 2:(+w,+h) 3:(-w,+h)`.
+  /// The value is the **quadrant** of the part's own centred box, as
+  /// `(±1, ±1)` — `EF`'s walls stand in the corner its own frame calls
+  /// `(+w, +h)`.
+  ///
+  /// **It used to be a vertex index, and an index cannot name a corner in
+  /// this data.** That worked while every part was a `width`/`height` box
+  /// this file built itself, always in the order `0:(-w,-h) 1:(+w,-h)
+  /// 2:(+w,+h) 3:(-w,+h)`. The re-import of 2026-08-27 publishes explicit
+  /// polygons instead, and their winding is whatever the export happened to
+  /// write: the two `AB` templates list their vertices in opposite
+  /// directions, so index 3 is a different corner on each of them. A quadrant
+  /// is the same corner however the points are ordered (§3.27).
   ///
   /// **All four lettered ruins are confirmed.** They were not read off the
   /// picture by eye — the layout was re-rendered into the picture's own frame
@@ -151,16 +161,19 @@ class TerrainTemplate {
   /// `Small L`, `Corner` and the barriers are deliberately absent: they are
   /// obstacles, not ruins, so they have no L to point at. They keep the
   /// measured heuristic in [_cornerMark].
-  static const _wallCorner = <String, int>{
-    'bm-bm-terrain-11e-1-part-ab': 3,
-    'bm-bm-terrain-11e-1-part-co': 1,
-    'bm-bm-terrain-11e-1-part-ef': 2,
-    'bm-bm-terrain-11e-1-part-gh': 2,
+  static const _wallCorner = <String, (int, int)>{
+    'AB': (-1, 1),
+    'CD': (1, -1),
+    'EF': (1, 1),
+    'GH': (1, 1),
   };
 
   /// The corner this part's walls occupy, or null when it has not been
   /// confirmed against a published diagram.
-  int? get wallCorner => _wallCorner[id];
+  /// Keyed on the label rather than the id: the ids are an export artefact
+  /// and were replaced wholesale by the re-import of 2026-08-27, while the
+  /// letters are stamped on the physical pieces and cannot change (§3.27).
+  (int, int)? get wallCorner => _wallCorner[label];
 
   /// Which ink the printed layout draws this part in (§7.3.23).
   ///
@@ -169,21 +182,19 @@ class TerrainTemplate {
   /// twelve parts in the whole published set, so this is a list rather than a
   /// rule — and a part missing from it draws neutral rather than joining a
   /// group by default.
-  TerrainGroup get group => switch (id) {
-        'bm-bm-terrain-11e-1-part-ab' ||
-        'bm-bm-terrain-11e-1-part-co' ||
-        'bm-bm-terrain-11e-1-part-ef' ||
-        'bm-bm-terrain-11e-1-part-gh' =>
-          TerrainGroup.ruin,
-        'bm-bm-terrain-11e-1-part-generator' ||
-        'bm-bm-terrain-11e-1-part-tower' ||
-        'bm-bm-terrain-11e-1-part-pipes' =>
-          TerrainGroup.structure,
-        'bm-bm-terrain-11e-1-part-small-l' ||
-        'bm-bm-terrain-11e-1-part-small-l-flip' ||
-        'bm-bm-terrain-11e-1-part-corner' ||
-        'bm-bm-terrain-11e-1-part-short-barrier' ||
-        'bm-bm-terrain-11e-1-part-long-barrier' =>
+  /// Keyed on the label for the same reason [wallCorner] is: the letters and
+  /// names are on the pieces, the ids are an export artefact that has already
+  /// been replaced once (§3.27).
+  /// **`Ruin Part` is a ruin without a letter.** The re-import of 2026-08-27
+  /// publishes a thirteenth part under that name, and it appears in exactly
+  /// one composite — `BigRect CD GH 03` — beside `CD` and `GH`, as the third
+  /// piece of the same ruin. It is `dense` like the other ruins and is the
+  /// only part upstream ships with no wall geometry at all, which is why it
+  /// has no corner to pin and keeps the measured tick (§3.27).
+  TerrainGroup get group => switch (label) {
+        'AB' || 'CD' || 'EF' || 'GH' || 'Ruin Part' => TerrainGroup.ruin,
+        'Generator' || 'Tower' || 'Pipes' => TerrainGroup.structure,
+        'Small L' || 'Corner' || 'Short Barrier' || 'Long Barrier' =>
           TerrainGroup.barricade,
         _ => TerrainGroup.unknown,
       };
@@ -243,6 +254,31 @@ class PlacedBuilding {
     required this.outline,
     this.cornerMark = const [],
   });
+}
+
+/// The vertex of [footprint] lying in [quadrant] of its own bounding box.
+///
+/// Null when no vertex is there — a part whose shape does not reach into that
+/// corner has no wall to mark, and guessing a neighbouring vertex would draw
+/// the L on the wrong side.
+int? _vertexInQuadrant(List<BoardPoint> footprint, (int, int) quadrant) {
+  if (footprint.isEmpty) return null;
+  var minX = footprint.first.x, maxX = footprint.first.x;
+  var minY = footprint.first.y, maxY = footprint.first.y;
+  for (final point in footprint) {
+    if (point.x < minX) minX = point.x;
+    if (point.x > maxX) maxX = point.x;
+    if (point.y < minY) minY = point.y;
+    if (point.y > maxY) maxY = point.y;
+  }
+  final centreX = (minX + maxX) / 2;
+  final centreY = (minY + maxY) / 2;
+  for (var i = 0; i < footprint.length; i++) {
+    final dx = footprint[i].x - centreX;
+    final dy = footprint[i].y - centreY;
+    if (dx.sign == quadrant.$1 && dy.sign == quadrant.$2) return i;
+  }
+  return null;
 }
 
 /// The corner tick for [outline], on whichever of its corners points furthest
@@ -427,7 +463,14 @@ List<BoardPoint> _footprintOf(Object? raw, {required bool centred}) {
       BoardPoint(0, h),
     ];
   }
-  return asList(shape['points']).map(BoardPoint.fromJson).toList();
+  // **A polygon is centred the same way a rectangle is.** `centred` used to
+  // reach only the rectangle branch, which was true of the data when it was
+  // written — every part a layout referenced was published as a
+  // `width`/`height` box. The Battlemaster re-import of 2026-08-27 publishes
+  // the same parts as polygons, so the flag stopped reaching them and every
+  // wall sat half its own size away from the base it stands on (§3.27).
+  final points = asList(shape['points']).map(BoardPoint.fromJson).toList();
+  return centred ? _centreOnOrigin(points) : points;
 }
 
 /// One piece on the table.
@@ -526,7 +569,15 @@ class TerrainPiece {
         label: part.label,
         group: part.group,
         outline: placed,
-        cornerMark: _cornerMark(placed, base: base, corner: part.wallCorner),
+        // The quadrant is resolved against the part's **own** footprint,
+        // where `(+1, +1)` means what the diagram means by it. `_place` keeps
+        // vertex order through rotation and translation, so the index it
+        // yields names the same corner of the placed outline.
+        cornerMark: _cornerMark(placed,
+            base: base,
+            corner: part.wallCorner == null
+                ? null
+                : _vertexInQuadrant(part.footprint, part.wallCorner!)),
       ));
     }
     return out;

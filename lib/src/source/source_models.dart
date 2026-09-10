@@ -1183,6 +1183,17 @@ class SourceAbility {
   final Map<String, dynamic> trigger;
 
   final List<String> unitIds;
+
+  /// The detachment this copy of the rule belongs to, where upstream scopes
+  /// one.
+  ///
+  /// **Upstream authors a private copy per detachment**, suffixing the id:
+  /// Armour of Contempt exists five times in the Dark Angels file, once for
+  /// each task force, with identical wording. Read without this field they
+  /// are five ids for one rule; read with it they are one rule a roster can
+  /// only ever hold one copy of, because a roster has one detachment.
+  final String? detachmentId;
+
   final GameVersion gameVersion;
 
   const SourceAbility({
@@ -1195,6 +1206,7 @@ class SourceAbility {
     this.usage = const {},
     this.trigger = const {},
     this.unitIds = const [],
+    this.detachmentId,
     required this.gameVersion,
   });
 
@@ -1210,6 +1222,7 @@ class SourceAbility {
       usage: asMap(j['usage']),
       trigger: asMap(j['trigger']),
       unitIds: strList(j['unit_ids']),
+      detachmentId: str(j['detachment_id']),
       gameVersion: GameVersion.fromJson(j['game_version']),
     );
   }

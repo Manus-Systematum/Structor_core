@@ -20,7 +20,20 @@ import 'roster.dart';
 
 /// Why a unit could not be priced. Surfaced rather than silently treated as
 /// zero — a missing price must never read as a cheap unit.
-enum PricingProblem { unknownDatasheet, noMatchingBracket }
+enum PricingProblem {
+  unknownDatasheet,
+  noMatchingBracket,
+
+  /// A bracket exists and costs nothing.
+  ///
+  /// Combat Patrol datasheets legitimately cost nothing — that mode plays a
+  /// fixed roster — but they are kept out of a matched-play army by
+  /// [SourceUnit.isMatchedPlay], so a zero reaching here is a price no source
+  /// published. Two datasheets are in that state: a Legends sheet Games
+  /// Workshop prices nowhere, and one BSData carries without a cost. Summed,
+  /// both read as free units in an army with a points limit (§3.28).
+  noPublishedPrice,
+}
 
 class UnitCost {
   final String instanceId;
@@ -125,6 +138,18 @@ class PointsCalculator {
           base: 0,
           wargear: 0,
           problem: PricingProblem.noMatchingBracket,
+        ));
+        continue;
+      }
+
+      if (bracket.cost == 0 && datasheet.isMatchedPlay) {
+        costs.add(UnitCost(
+          instanceId: unit.instanceId,
+          datasheetId: unit.datasheetId,
+          copyIndex: copyIndex,
+          base: 0,
+          wargear: 0,
+          problem: PricingProblem.noPublishedPrice,
         ));
         continue;
       }

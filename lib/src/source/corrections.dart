@@ -110,6 +110,19 @@ class UnitCorrection implements Correction {
   /// model does not have.
   final List<String> removeWargear;
 
+  /// Price brackets for a datasheet no source in the pipeline prices.
+  ///
+  /// **The judge is not a source.** Games Workshop's published points decide
+  /// which of two disagreeing sources is right (§3.5); reading a price out of
+  /// them would make that price unjudgeable by the only thing that judges
+  /// prices. So a missing one is transcribed here by hand, with the page it
+  /// came from named in [reason] — the same standing as every other entry in
+  /// this file, and visible to the cross-check as ours rather than theirs.
+  ///
+  /// Each entry is `{models, cost}`, optionally with `models_max` and
+  /// `unit_count_min`, matching the `points` records in `units.json`.
+  final List<Map<String, Object?>> points;
+
   const UnitCorrection({
     required this.faction,
     required this.unitId,
@@ -117,6 +130,7 @@ class UnitCorrection implements Correction {
     this.addWargear = const [],
     this.standardWargear = const [],
     this.removeWargear = const [],
+    this.points = const [],
     this.upstream,
   });
 }
@@ -533,10 +547,19 @@ class DataCorrections {
         ].whereType<Object>().toList();
       }
 
+      // **A transcribed price replaces the record's, whatever it says.** The
+      // case it exists for is a datasheet BSData carries and prices at zero,
+      // which is a price the app would charge; overwriting is the only way to
+      // reach it, and the entry names where the number came from.
+      final points = correction.points.isEmpty
+          ? record['points']
+          : [for (final bracket in correction.points) {...bracket}];
+
       out.add({
         for (final e in record.entries) e.key.toString(): e.value,
         'ability_ids': abilityIds,
         'wargear_budgets': budgets,
+        if (points != null) 'points': points,
         'corrected': {
           'reason': correction.reason,
           if (correction.upstream != null) 'upstream': correction.upstream,
@@ -775,13 +798,21 @@ class DataCorrections {
         final standard = [
           for (final item in asList(_plain(node['standard_wargear']))) '$item',
         ];
-        if (reason.isEmpty || (wargear.isEmpty && standard.isEmpty)) continue;
+        final points = <Map<String, Object?>>[
+          for (final item in asList(_plain(node['points'])))
+            if (item is Map<String, Object?> && item['cost'] is num) item,
+        ];
+        if (reason.isEmpty ||
+            (wargear.isEmpty && standard.isEmpty && points.isEmpty)) {
+          continue;
+        }
         units.add(UnitCorrection(
           faction: node['faction']?.toString() ?? '',
           unitId: node['id']?.toString() ?? '',
           reason: reason,
           upstream: node['upstream']?.toString(),
           addWargear: wargear,
+          points: points,
           standardWargear: standard,
           removeWargear: [
             for (final item in asList(_plain(node['remove_wargear']))) '$item',

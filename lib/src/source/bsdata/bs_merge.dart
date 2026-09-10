@@ -153,6 +153,17 @@ MergeResult mergeRecords({
       // has none — and seven units came through with no points at all, which
       // would have shipped them as free.
       if (_isEmpty(entry.value) && !_isEmpty(existing[entry.key])) continue;
+      // **And a price of nothing is the same kind of gap.** A points list
+      // that costs every bracket at zero is not empty, so the rule above lets
+      // it through — and BSData's `Hellflayer` singular, matched to 40kdc's
+      // `Hellflayers`, replaced 80 points with 0. A unit that costs nothing
+      // is never a statement the sources make on purpose (§3.28).
+      if (entry.key == 'points' &&
+          _allFree(entry.value) &&
+          !_allFree(existing[entry.key]) &&
+          !_isEmpty(existing[entry.key])) {
+        continue;
+      }
       // A unit's weapon list stays 40kdc's for the same reason its weapons do:
       // 40kdc scopes a Commander's missile pod to the Commander and BSData
       // does not, so taking BSData's list points the unit at the generic gun.
@@ -178,6 +189,16 @@ MergeResult mergeRecords({
         .toList(growable: false),
     addedByBsdata: added,
   );
+}
+
+/// Whether every bracket in a points list costs nothing.
+bool _allFree(Object? value) {
+  if (value is! List || value.isEmpty) return false;
+  for (final entry in value) {
+    final cost = asMap(entry)['cost'];
+    if (cost is num && cost > 0) return false;
+  }
+  return true;
 }
 
 bool _touchedByBsdata(Map<String, dynamic>? record) =>

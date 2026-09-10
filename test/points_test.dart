@@ -93,6 +93,42 @@ void main() {
       expect(cost.isComplete, isFalse);
       expect(cost.unpriced.single.problem, PricingProblem.noMatchingBracket);
     });
+
+    test('a bracket costing nothing is reported, not charged as free', () {
+      // Two datasheets reach a matched-play list priced at zero: a Legends
+      // sheet nobody publishes points for, and one BSData carries without a
+      // cost. Summed as written, each is a free unit inside a points limit.
+      final free = SourceUnit.fromJson({
+        'id': 'free-squad',
+        'name': 'Free Squad',
+        'points': [
+          {'models': 1, 'cost': 0}
+        ],
+      });
+      final cost = PointsCalculator(MapCatalogue([free])).price(_rosterOf([
+        RosterUnit(instanceId: 'x', datasheetId: 'free-squad', models: 1),
+      ]));
+      expect(cost.isComplete, isFalse);
+      expect(cost.unpriced.single.problem, PricingProblem.noPublishedPrice);
+    });
+
+    test('and a Combat Patrol datasheet still costs nothing, correctly', () {
+      // That mode plays a fixed boxed roster with no points at all, so zero
+      // is what its sheets say and not a gap in the reading.
+      final patrol = SourceUnit.fromJson({
+        'id': 'patrol-squad',
+        'name': 'Patrol Squad',
+        'game_modes': ['combat-patrol'],
+        'points': [
+          {'models': 1, 'cost': 0}
+        ],
+      });
+      final cost = PointsCalculator(MapCatalogue([patrol])).price(_rosterOf([
+        RosterUnit(instanceId: 'x', datasheetId: 'patrol-squad', models: 1),
+      ]));
+      expect(cost.isComplete, isTrue);
+      expect(cost.total, 0);
+    });
   });
 
   group('combat units', () {

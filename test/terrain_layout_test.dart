@@ -546,16 +546,19 @@ void main() {
       // shape is not symmetric — these are L-shaped ruins and the rotation
       // says where the L points. Without the tick the diagram throws that
       // away and two differently-turned pieces look identical.
+      // By label, not by template id: the re-import of 2026-08-27 replaced
+      // every id and kept every letter (§3.27).
       final byPart = <String, Set<double>>{};
       for (final template in pack.terrainTemplates.values) {
         for (final feature in template.features) {
-          (byPart[feature.templateId] ??= {}).add(feature.rotationDegrees);
+          final part = pack.terrainTemplates[feature.templateId];
+          if (part == null) continue;
+          (byPart[part.label] ??= {}).add(feature.rotationDegrees);
         }
       }
-      for (final id in const ['ef', 'gh', 'co', 'small-l']) {
-        final key = 'bm-bm-terrain-11e-1-part-$id';
-        expect(byPart[key], containsAll([0.0, 90.0, 180.0, 270.0]),
-            reason: key);
+      for (final label in const ['EF', 'GH', 'CD', 'Small L']) {
+        expect(byPart[label], containsAll([0.0, 90.0, 180.0, 270.0]),
+            reason: label);
       }
     }, skip: skip);
 
@@ -692,14 +695,17 @@ void main() {
     expect(old.terrainLayoutId, isNull);
   });
   group('walls read off a published diagram', () {
-    // Battlemaster's own layout picture for take-and-hold-vs-purge-the-foe-1
-    // shows where each ruin's walls stand. The picture was tied to this data
+    // Battlemaster's own layout picture for the first Take and Hold vs Purge
+    // the Foe table shows where each ruin's walls stand. The layout was
+    // `take-and-hold-vs-purge-the-foe-1` until the re-import of 2026-08-27
+    // renamed every table; it is `bm-take-vs-purge-01` now, with the same
+    // pieces under the same ids and the same letters on them (§3.27). The picture was tied to this data
     // by fitting one affine map against all six objective positions *and*
     // both halves of the staggered deployment zones, so the correspondence is
     // not a guess about which piece is which.
     test('EF stands in the same corner of its box at both placements', () {
       final layout = pack.terrainLayouts
-          .firstWhere((l) => l.id == 'take-and-hold-vs-purge-the-foe-1');
+          .firstWhere((l) => l.id == 'bm-take-vs-purge-01');
       final templates = pack.terrainTemplates;
 
       BoardPoint tickOf(String pieceId) {
@@ -728,7 +734,7 @@ void main() {
       // agreeing and AB and CD plainly not, which is the value of comparing
       // drawings rather than counting pixels.
       final layout = pack.terrainLayouts
-          .firstWhere((l) => l.id == 'take-and-hold-vs-purge-the-foe-1');
+          .firstWhere((l) => l.id == 'bm-take-vs-purge-01');
       final templates = pack.terrainTemplates;
 
       BoardPoint tick(String pieceId, String label) => layout.pieces
@@ -751,7 +757,7 @@ void main() {
       // recorded on the wrong vertex still satisfies one placement and
       // breaks this.
       final layout = pack.terrainLayouts
-          .firstWhere((l) => l.id == 'take-and-hold-vs-purge-the-foe-1');
+          .firstWhere((l) => l.id == 'bm-take-vs-purge-01');
       final templates = pack.terrainTemplates;
 
       BoardPoint tick(String pieceId, String label) => layout.pieces
@@ -777,13 +783,18 @@ void main() {
       // Small L, Corner and the barriers are obstacles rather than ruins, so
       // there is no wall corner to record. They must still get a tick.
       final layout = pack.terrainLayouts
-          .firstWhere((l) => l.id == 'take-and-hold-vs-purge-the-foe-1');
+          .firstWhere((l) => l.id == 'bm-take-vs-purge-01');
       final templates = pack.terrainTemplates;
       final piece = layout.pieces.firstWhere((p) => p.id == 'area-11');
       final small =
           piece.buildings(templates).firstWhere((b) => b.label == 'Small L');
       expect(small.cornerMark, hasLength(3));
-      expect(templates['bm-bm-terrain-11e-1-part-small-l']!.wallCorner, isNull);
+      // Found by its label, not its id: the re-import of 2026-08-27 replaced
+      // every template id, and the id this once named is gone (§3.27).
+      expect(
+        templates.values.firstWhere((t) => t.label == 'Small L').wallCorner,
+        isNull,
+      );
     }, skip: skip);
   });
   group('the inks the printed maps use', () {
@@ -811,17 +822,28 @@ void main() {
       expect(ungrouped, isEmpty);
     });
 
-    test('the lettered parts are the ruins, and only those', () {
+    test('every lettered part is a ruin, and one unlettered part is too', () {
+      // This read "and only those" until the re-import of 2026-08-27 added
+      // `Ruin Part`, which stands beside `CD` and `GH` in one composite as
+      // the third piece of that ruin (§3.27). The direction worth keeping is
+      // that a letter always means a ruin — the letters are what a player
+      // matches against the printed table — and that nothing else drifts in
+      // unnoticed, which is why the exception is named rather than widened.
       if (pack.terrainLayouts.isEmpty) return;
+      final unlettered = <String>{};
       for (final layout in pack.terrainLayouts) {
         for (final piece in layout.pieces) {
           for (final b in piece.buildings(pack.terrainTemplates)) {
-            final lettered = RegExp(r'^(AB|CD|EF|GH)$').hasMatch(b.label);
-            expect(b.group == TerrainGroup.ruin, lettered,
-                reason: '${b.label} in ${layout.id}');
+            if (RegExp(r'^(AB|CD|EF|GH)$').hasMatch(b.label)) {
+              expect(b.group, TerrainGroup.ruin,
+                  reason: '${b.label} in ${layout.id}');
+            } else if (b.group == TerrainGroup.ruin) {
+              unlettered.add(b.label);
+            }
           }
         }
       }
+      expect(unlettered, {'Ruin Part'});
     });
 
     // Named individually because the printed picture is the only source for
@@ -829,23 +851,35 @@ void main() {
     // (corrected 2026-08-24).
     test('each part is in the group the printed layout draws it in', () {
       if (pack.terrainTemplates.isEmpty) return;
-      TerrainGroup groupOf(String suffix) =>
-          pack.terrainTemplates['bm-bm-terrain-11e-1-part-$suffix']!.group;
+      // By label, not by id: the re-import of 2026-08-27 replaced every
+      // template id, and the ids these once named are gone. The letters are
+      // stamped on the physical pieces and cannot change (§3.27).
+      Iterable<TerrainGroup> groupsOf(String label) => pack
+          .terrainTemplates.values
+          .where((t) => t.label == label)
+          .map((t) => t.group);
 
-      for (final part in ['ab', 'co', 'ef', 'gh']) {
-        expect(groupOf(part), TerrainGroup.ruin, reason: part);
+      void expectGroup(String label, TerrainGroup group) {
+        final found = groupsOf(label);
+        expect(found, isNotEmpty, reason: '$label is no longer published');
+        expect(found, everyElement(group), reason: label);
       }
-      for (final part in ['generator', 'tower', 'pipes']) {
-        expect(groupOf(part), TerrainGroup.structure, reason: part);
+
+      // `CO` is upstream's misspelling of `CD` and folds into it; `Small L
+      // flip` is the same physical piece the other way round.
+      for (final part in ['AB', 'CD', 'EF', 'GH', 'Ruin Part']) {
+        expectGroup(part, TerrainGroup.ruin);
+      }
+      for (final part in ['Generator', 'Tower', 'Pipes']) {
+        expectGroup(part, TerrainGroup.structure);
       }
       for (final part in [
-        'small-l',
-        'small-l-flip',
-        'corner',
-        'short-barrier',
-        'long-barrier',
+        'Small L',
+        'Corner',
+        'Short Barrier',
+        'Long Barrier',
       ]) {
-        expect(groupOf(part), TerrainGroup.barricade, reason: part);
+        expectGroup(part, TerrainGroup.barricade);
       }
     });
 

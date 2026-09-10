@@ -131,6 +131,57 @@ aliases:
           containsPair('items', ['weapon-support-system']));
     });
 
+    test('a transcribed price replaces one the sources never wrote', () {
+      // The channel exists for a datasheet BSData publishes with no cost:
+      // shipped as written it is a free unit inside a points limit, and no
+      // other source in the pipeline carries a price to fall back on.
+      const priced = '''
+units:
+  - faction: death-guard
+    id: beasts-of-nurgle
+    reason: Nobody in the pipeline prices this datasheet.
+    upstream: not yet reported
+    points:
+      - models: 1
+        cost: 70
+''';
+      final result =
+          DataCorrections.parse(priced).applyToUnits('death-guard', [
+        {
+          'id': 'beasts-of-nurgle',
+          'points': [
+            {'models': 1, 'models_max': 2, 'cost': 0}
+          ],
+        },
+      ]);
+
+      final unit = result.records.single! as Map;
+      expect((unit['points']! as List).single, containsPair('cost', 70));
+      expect(result.applied, hasLength(1));
+    });
+
+    test('and a correction that says nothing is not a correction', () {
+      // A reason with no effect is a note, and an effect with no reason is a
+      // private fork. Neither is parsed.
+      const empty = '''
+units:
+  - faction: death-guard
+    id: beasts-of-nurgle
+    reason: A reason on its own changes nothing.
+''';
+      final result = DataCorrections.parse(empty).applyToUnits('death-guard', [
+        {
+          'id': 'beasts-of-nurgle',
+          'points': [
+            {'models': 1, 'cost': 0}
+          ],
+        },
+      ]);
+      expect(result.applied, isEmpty);
+      expect((result.records.single! as Map)['points'],
+          [containsPair('cost', 0)]);
+    });
+
     test('a datasheet holding both ids ends up with one', () {
       final result = DataCorrections.parse(yaml).applyToUnits('tau-empire', [
         {
@@ -296,6 +347,16 @@ abilities:
       // The check the aliases exist to satisfy: an ability whose name differs
       // only by a plural and whose effect is identical is one rule, and
       // leaving it as two splits it across tiers on the rules screen.
+      //
+      // **Two ids are only one rule on screen if one army can hold both.**
+      // Upstream also publishes *scoped copies*: Armour of Contempt is
+      // written once per Dark Angels task force, and the Combat Patrol
+      // datasheets carry their own copy of every rule the matched-play sheet
+      // has — 24 pairs, against 10 that are genuine splits. A roster has one
+      // detachment and cannot take a Combat Patrol sheet at all, so a scoped
+      // copy is never rendered beside the rule it copies. Aliasing them would
+      // merge rules that were never together, and would need a new entry
+      // every time a boxed set is published.
       final loader = DatasetLoader(
         snapshotDir.path,
         corrections: DatasetLoader.correctionsAt(correctionsPath),
@@ -303,19 +364,36 @@ abilities:
       if (!loader.root.existsSync()) return;
 
       for (final factionId in loader.availableFactions()) {
-        final seen = <String, String>{};
-        for (final ability in loader.loadFaction(factionId).abilities) {
+        final faction = loader.loadFaction(factionId);
+        final matchedPlay = {
+          for (final unit in faction.units)
+            if (unit.isMatchedPlay) unit.id,
+        };
+
+        /// Whether any army at all can have this rule in front of it.
+        bool reachable(SourceAbility ability) =>
+            ability.unitIds.isEmpty ||
+            ability.unitIds.any(matchedPlay.contains);
+
+        final seen = <String, SourceAbility>{};
+        for (final ability in faction.abilities) {
+          if (!reachable(ability)) continue;
           final key =
               '${ability.name.toLowerCase().replaceAll(RegExp(r's$'), '')}'
               '|${ability.effectFingerprint}';
           final previous = seen[key];
+          if (previous != null &&
+              previous.detachmentId != ability.detachmentId) {
+            continue;
+          }
           expect(
-            previous,
+            previous?.abilityId,
             isNull,
-            reason: '$factionId: ${ability.abilityId} and $previous are the '
-                'same rule under two ids — add an alias',
+            reason: '$factionId: ${ability.abilityId} and '
+                '${previous?.abilityId} are the same rule under two ids, '
+                'and one army can hold both — add an alias',
           );
-          seen[key] = ability.abilityId;
+          seen[key] = ability;
         }
       }
     });
