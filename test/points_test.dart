@@ -212,10 +212,10 @@ void main() {
       calculator = PointsCalculator(MapCatalogue(faction.units));
     });
 
-    test('a real 2,000 pt list prices to exactly 2000', () {
+    test('a real 2,000 pt list prices to what its units cost today', () {
       final cost = calculator.price(roster);
       expect(cost.unpriced.map((u) => u.datasheetId), isEmpty);
-      expect(cost.total, 2000);
+      expect(cost.total, referenceListCost);
     }, skip: available ? null : 'no snapshot; run tools/fetch-40kdc.sh');
 
     test('Crisis Fireknife reconciles as 100 base + 6 missile pods at 5', () {

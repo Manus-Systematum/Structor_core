@@ -366,7 +366,7 @@ void main() {
   group('rebuilding the reference army from nothing', () {
     test('the same list, assembled by the editor, prices the same', () {
       // The end-to-end claim: the builder can produce the list the importer
-      // produces, and both come to 2000.
+      // produces, and both come to the same figure.
       var roster = RosterEditor.blank(
         name: '2k ret',
         factionId: 'tau-empire',
@@ -395,8 +395,11 @@ void main() {
       }
 
       expect(roster.units, hasLength(8));
-      // 2 x (80 + 130 + 95 + 120) = 850 for the attached half of the list.
-      expect(priceOf(roster), 850);
+      // 2 x (80 + 130 + 95 + 130) = 870 for the attached half of the list.
+      // The export prints 120 for the Starscythe suits; Games Workshop
+      // publishes 100 for the unit and 5 per T'au flamer, and this one takes
+      // six (see [referenceListCost]).
+      expect(priceOf(roster), 870);
     }, skip: available ? null : 'no snapshot');
   });
 

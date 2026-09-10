@@ -105,10 +105,29 @@ void main() {
     }, skip: root.existsSync() ? null : 'no snapshot');
 
     test('but keeps its own detachments and army rule', () {
+      // **Read from a chapter whose rule still differs from its parent's.**
+      // This asked Blood Angels for `the-red-thirst` until the fetch of
+      // 2026-08-31, when upstream repointed nine of the eleven chapters at
+      // `oath-of-moment`; The Red Thirst is still published as a rule, just
+      // no longer as the chapter's army rule. Black Templars and Deathwatch
+      // are the two that still differ, and one of them is what makes this
+      // test say anything: with a chapter that agrees with its parent,
+      // inheriting the parent's rule and keeping its own are the same
+      // answer.
+      final templars = loader.loadFaction('black-templars');
       final chapter = loader.loadFaction('blood-angels');
       final parent = loader.loadFaction('adeptus-astartes');
 
-      expect(chapter.factionRuleId, 'the-red-thirst');
+      expect(parent.factionRuleId, 'oath-of-moment');
+      expect(templars.factionRuleId, 'templar-vows');
+      expect(loader.loadFaction('deathwatch').factionRuleId, 'mission-tactics');
+
+      // And a chapter that agrees with its parent is reported as agreeing,
+      // rather than as having no rule of its own.
+      expect(chapter.factionRuleId, 'oath-of-moment');
+
+      expect(templars.detachments.length,
+          greaterThan(parent.detachments.length));
       expect(
           chapter.detachments.length, greaterThan(parent.detachments.length));
     }, skip: root.existsSync() ? null : 'no snapshot');

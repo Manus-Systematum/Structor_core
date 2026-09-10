@@ -205,7 +205,8 @@ void main() {
       final roster = Roster.fromJson(jsonDecode(
           File('test/fixtures/tau_strike_force_2000.json').readAsStringSync()));
 
-      expect(PointsCalculator(catalogue).price(roster).total, 2000);
+      expect(PointsCalculator(catalogue).price(roster).total,
+          referenceListCost);
 
       final attached =
           roster.combatUnits().firstWhere((g) => g.first.instanceId == 'u01');

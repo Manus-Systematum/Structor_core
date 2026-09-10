@@ -140,12 +140,14 @@ void main() {
       expect(result.isClean, isTrue);
     }, skip: available ? null : 'no snapshot');
 
-    test('the imported roster prices to the printed total', () {
+    test('the imported roster prices to what its units cost today', () {
       final cost = PointsCalculator(dataset).price(result.roster);
       expect(cost.isComplete, isTrue);
-      expect(cost.total, 2000);
-      expect(cost.total, result.printedPoints,
-          reason: 'computed and printed must agree');
+      expect(cost.total, referenceListCost);
+      expect(result.printedPoints, 2000);
+      expect(cost.total - result.printedPoints!, referenceListOverrun,
+          reason: 'computed and printed differ by more than the two '
+              'datasheets that moved — see referenceListCost');
     }, skip: available ? null : 'no snapshot');
 
     test('attachment groups become LEADS edges', () {
@@ -164,9 +166,12 @@ void main() {
           isTrue);
     }, skip: available ? null : 'no snapshot');
 
-    test('the roster validates', () {
+    test('the roster validates, but for the points that moved under it', () {
       final validation = RosterValidator(dataset).validate(result.roster);
-      expect(validation.errors, isEmpty, reason: validation.errors.join('\n'));
+      // The one error is the list being $referenceListOverrun over a 2,000
+      // point cap, which is the validator working: a list built to a limit
+      // does not stay under it when two of its datasheets are repriced.
+      expect(validation.errors.map((f) => f.code), ['points.over']);
       expect(result.roster.warlordInstanceId, isNotNull);
       expect(result.roster.declaredDisposition, 'reconnaissance');
       expect(result.roster.battleSizeId, 'strike-force');
@@ -242,10 +247,11 @@ void main() {
       );
     }, skip: available ? null : 'no snapshot');
 
-    test('prices to the printed total', () {
-      // 995, and it was 965 until Enhancements were priced at all.
+    test('prices to what its units cost today', () {
+      // 995 printed, and it was 965 until Enhancements were priced at all.
       expect(result.printedPoints, 995);
-      expect(PointsCalculator(dataset).price(result.roster).total, 995);
+      expect(PointsCalculator(dataset).price(result.roster).total,
+          incursionListCost);
     }, skip: available ? null : 'no snapshot');
 
     test('Incursion is read from the header', () {
@@ -262,7 +268,11 @@ void main() {
       expect(upgrade.targetInstanceIds, hasLength(2));
 
       final validation = RosterValidator(dataset).validate(result.roster);
-      expect(validation.isLegal, isTrue, reason: validation.errors.join('\n'));
+      // Legal in every way but the points: this list is over its 1,000 point
+      // cap by the same 30 the Strike Force one is over 2,000 (see
+      // [incursionListCost]).
+      expect(validation.errors.map((f) => f.code), ['points.over'],
+          reason: validation.errors.join('\n'));
       // Incursion allows two slots and this list spends one.
       expect(validation.findings.map((f) => f.message).join(' '),
           contains('1 of 2 enhancement slots unused'));

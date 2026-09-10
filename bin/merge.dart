@@ -185,7 +185,10 @@ void main(List<String> args) {
         totalAdded += added;
       }
 
-      if (!reportOnly) _write('$_outRoot/$relative', result.records);
+      if (!reportOnly) {
+        _write('$_outRoot/$relative',
+            entry.key == 'abilities' ? _joinRuleText(result.records) : result.records);
+      }
     }
 
     // An enhancement's wording, now that there is some. 40kdc leaves
@@ -1165,3 +1168,67 @@ String _markup(String value) => value
     .replaceAll(RegExp(r'[ \t]+\n'), '\n')
     .replaceAll(RegExp(r'\n{3,}'), '\n\n')
     .trim();
+
+/// Joins the two halves upstream publishes of one rule.
+///
+/// **A detachment rule arrives twice, from two sources, under two ids.** 40kdc
+/// suffixes it with the detachment — `powers-of-da-waaagh-wurrband` — and
+/// carries the structured effect with no printed text. BSData writes it plain
+/// — `powers-of-da-waaagh` — and carries the text with no effect. Matched on
+/// id, which is what the merge does, the two never meet: the app had a rule it
+/// could reason about and no wording to show a player mid-game, or wording
+/// under a name nothing referenced.
+///
+/// Measured across every faction, 1,046 records are completable this way and
+/// **none ambiguously** — no name in a faction carries two different texts. So
+/// the join is by name, and only ever fills a gap:
+///
+///   - the record taking the text must have an effect and no text of its own,
+///     so nothing published is overwritten (§2.3);
+///   - the record giving it must have text and no effect, so a real rule is
+///     never cannibalised for its wording;
+///   - exactly one candidate must exist, so an ambiguous name is left alone
+///     rather than guessed at.
+///
+/// **The text-only record stays.** Dropping it once its text had a home was
+/// the first shape of this, and it broke the dataset patch: a patch operation
+/// naming `shroud-of-heroes` landed on nothing, because the id it names had
+/// been absorbed. Upstream publishes the record, so the merge keeps it (§2.3);
+/// it carries no effect, no ability type and no datasheets, so nothing files
+/// it on a rules screen (§7.3.9). Recorded as §3.30.
+List<Object?> _joinRuleText(List<Object?> records) {
+  final givers = <String, List<Map<String, Object?>>>{};
+  for (final raw in records) {
+    final record = asMap(raw);
+    if (asMap(record['effect']).isNotEmpty) continue;
+    if ((str(record['description']) ?? '').trim().isEmpty) continue;
+    givers
+        .putIfAbsent(strOr(record['name'], '').toLowerCase(), () => [])
+        .add(record);
+  }
+
+  final out = <Object?>[];
+  for (final raw in records) {
+    final record = asMap(raw);
+    if (asMap(record['effect']).isEmpty ||
+        (str(record['description']) ?? '').trim().isNotEmpty) {
+      out.add(raw);
+      continue;
+    }
+    final candidates = givers[strOr(record['name'], '').toLowerCase()];
+    if (candidates == null || candidates.length != 1) {
+      out.add(raw);
+      continue;
+    }
+    final giver = candidates.single;
+    out.add({
+      ...record,
+      'description': giver['description'],
+      // Where the wording came from, so a reader of the merged file is not
+      // left wondering why an id nothing publishes text for has text.
+      'description_from': giver['ability_id'],
+    });
+  }
+
+  return out;
+}

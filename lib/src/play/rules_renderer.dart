@@ -323,6 +323,18 @@ class RulesRenderer {
       case 'unit-keyword':
         return 'gains ${_keyword(strOr(mod['keyword_id'], '?'))}';
 
+      // The third spelling of the same idea, and the one the re-import of
+      // 2026-08-27 brought in: `keyword` singular, sometimes with
+      // `to_keywords` naming which units of the target actually gain it —
+      // Leader-beasts grants TYRANID WARRIORS to two named Warriors
+      // datasheets and not to everything friendly, so dropping that half
+      // would state a much wider rule than the one printed.
+      case 'unit-keyword-grant':
+        final keyword = _keyword(strOr(mod['keyword'], '?'));
+        final only = strList(mod['to_keywords']).map(_keyword).toList();
+        if (only.isEmpty) return 'gains $keyword';
+        return '${_list(only)} gain $keyword';
+
       case 'ability-grant':
         // `ability_id` was not read, so the Immolator's Purge and Cleanse —
         // which names `benefit-of-cover` outright — rendered as "grants a

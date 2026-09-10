@@ -51,13 +51,35 @@ void main() {
     }, skip: skip);
 
     test('a compound restriction is both halves', () {
-      // "Adepta Sororitas Character" is the faction keyword and Character run
-      // together — matched as one string it matches nothing.
+      // "Adepta Sororitas Character" was the faction keyword and Character run
+      // together — matched as one string it matches nothing, so Hagiomnifex
+      // could be given to anybody. **Upstream publishes the two separately
+      // now**, and no enhancement in any faction still writes a run-together
+      // compound; what upstream does with it is checked below, and the
+      // splitting itself is checked against a written-out compound so the
+      // handling does not quietly rot while the data happens not to need it.
       final h = byName('Hagiomnifex');
-      expect(h.keywordRestrictions, contains('Adepta Sororitas Character'));
+      expect(h.keywordRestrictions, ['Adepta Sororitas', 'Character']);
       expect(h.canBeTakenBy(canoness, factionName: 'Adepta Sororitas'), isTrue);
       expect(
           h.canBeTakenBy(sacresants, factionName: 'Adepta Sororitas'), isFalse,
+          reason: 'a squad is not a Character');
+    }, skip: skip);
+
+    test('and a compound written as one string is still read as both', () {
+      // The shape this was found in, kept as a test of the code rather than
+      // of the data — upstream has fixed it once and can publish it again.
+      final compound = SourceEnhancement.fromJson(const {
+        'id': 'x',
+        'name': 'Written Together',
+        'keyword_restrictions': ['Adepta Sororitas Character'],
+      });
+      expect(
+          compound.canBeTakenBy(canoness, factionName: 'Adepta Sororitas'),
+          isTrue);
+      expect(
+          compound.canBeTakenBy(sacresants, factionName: 'Adepta Sororitas'),
+          isFalse,
           reason: 'a squad is not a Character');
     }, skip: skip);
 

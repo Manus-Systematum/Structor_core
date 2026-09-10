@@ -323,22 +323,26 @@ void main() {
     final snapshot = Directory(snapshotDir.path);
     final available = snapshot.existsSync();
 
-    test('a real 2,000 pt list produces no errors', () {
+    test('a real 2,000 pt list produces no errors but the points that moved',
+        () {
       final roster = Roster.fromJson(jsonDecode(
           File('test/fixtures/tau_strike_force_2000.json').readAsStringSync()));
       final faction = correctedLoader().loadFaction('tau-empire');
       final result =
           RosterValidator(MapCatalogue.ofFaction(faction)).validate(roster);
 
-      expect(result.errors, isEmpty,
+      // Everything the validator judges about how the list is *built* is
+      // still clean; the only error is the $referenceListOverrun points two
+      // repriced datasheets added under it (see [referenceListCost]).
+      expect(result.errors.map((f) => f.code), ['points.over'],
           reason: result.errors.map((f) => f.toString()).join('\n'));
-      expect(result.cost.total, 2000);
+      expect(result.cost.total, referenceListCost);
 
       // The two informational observations a builder should surface: the list
       // spends 2 of 3 Detachment Points and takes none of its 3 slots.
       expect(result.has('detachment.under-budget'), isTrue);
       expect(result.has('slots.unused'), isTrue);
-      expect(result.has('points.under'), isFalse, reason: 'exactly 2000');
+      expect(result.has('points.under'), isFalse, reason: 'over, not under');
     }, skip: available ? null : 'no snapshot; run tools/fetch-40kdc.sh');
   });
   group('wargear past what the datasheet allows', () {
