@@ -153,6 +153,34 @@ class AssetEntry {
 
 class DatasetManifest {
   final int schema;
+
+  /// Which of two manifests is newer, as a number that only ever goes up
+  /// (DESIGN.md §3.38).
+  ///
+  /// **Needed because a published dataset can be older than the app.** The
+  /// app prefers the remote manifest so a data update reaches it without a
+  /// store release — and with nothing to compare, an out-of-date site won
+  /// every time. For two weeks `structor.systematum.net` served a dataset
+  /// from 28 August over the fixed one compiled into every new build, and
+  /// both simulators showed the old rules.
+  ///
+  /// The build time as `YYYYMMDDHHMMSS` in UTC, and never less than the
+  /// previous manifest's revision plus one, so it stays ordered even on a
+  /// machine whose clock is behind. It is bumped only when the files the
+  /// manifest names actually change: rebuilding identical data keeps the
+  /// revision it had, so publishing the same dataset twice is not an update.
+  ///
+  /// **Not in the bundles.** [generated] and each bundle's own `revision`
+  /// stay caller-stamped, which is what keeps a rebuild of unchanged data
+  /// byte-identical; a clock in there would rename all 36 files on every
+  /// build and send every installed app to download 7 MB for nothing.
+  ///
+  /// Zero when absent, which is every manifest written before this existed —
+  /// so an unversioned dataset never outranks a versioned one. The schema
+  /// stays at 1 for the same reason [patches] did: a build that predates the
+  /// field ignores a key it does not know and keeps working.
+  final int revision;
+
   final String generated;
   final String source;
   final List<BundleEntry> bundles;
@@ -177,12 +205,14 @@ class DatasetManifest {
     this.patches = const [],
     this.assets = const [],
     this.schema = bundleSchemaVersion,
+    this.revision = 0,
   });
 
   factory DatasetManifest.fromJson(Object? v) {
     final j = asMap(v);
     return DatasetManifest(
       schema: intOr(j['schema'], 0),
+      revision: intOr(j['revision'], 0),
       generated: strOr(j['generated'], ''),
       source: strOr(j['source'], ''),
       bundles: asList(j['bundles']).map(BundleEntry.fromJson).toList(),
@@ -193,6 +223,7 @@ class DatasetManifest {
 
   Map<String, Object?> toJson() => {
         'schema': schema,
+        if (revision > 0) 'revision': revision,
         'generated': generated,
         'source': source,
         'bundles': [for (final b in bundles) b.toJson()],
@@ -204,6 +235,22 @@ class DatasetManifest {
   /// True when this manifest was produced by a newer builder than this build
   /// understands. Refusing is safer than guessing at unknown fields.
   bool get isFuture => schema > bundleSchemaVersion;
+
+  /// Whether both name exactly the same files with exactly the same bytes.
+  ///
+  /// The question a rebuild asks before stamping a new [revision]: file names
+  /// carry a content hash (§3.19), so the same names and digests are the same
+  /// dataset, whatever the build time.
+  bool namesTheSameFilesAs(DatasetManifest other) {
+    Set<String> files(DatasetManifest m) => {
+          for (final b in m.bundles) '${b.file} ${b.sha256}',
+          for (final p in m.patches) '${p.file} ${p.sha256}',
+          for (final a in m.assets) '${a.file} ${a.sha256}',
+        };
+    final mine = files(this);
+    final theirs = files(other);
+    return mine.length == theirs.length && mine.containsAll(theirs);
+  }
 
   BundleEntry? entry(String id) {
     for (final bundle in bundles) {
@@ -277,3 +324,32 @@ class DatasetBundle {
 }
 
 String sha256Of(List<int> bytes) => sha256.convert(bytes).toString();
+
+/// The [DatasetManifest.revision] a freshly built manifest should carry.
+///
+/// Kept here rather than in the bundler so the rule is tested rather than
+/// trusted. Three cases:
+///
+///   - **the same files as last time** keep the previous revision, so a
+///     rebuild of unchanged data is not an update and does not churn the
+///     committed manifest;
+///   - **different files** take the build time as `YYYYMMDDHHMMSS`, which
+///     reads as a date to anyone looking at the site;
+///   - **but never less than the previous revision plus one**, so a machine
+///     whose clock is behind still produces a newer dataset rather than one
+///     every installed app would ignore.
+int nextManifestRevision({
+  required DatasetManifest built,
+  DatasetManifest? previous,
+  required DateTime now,
+}) {
+  final before = previous?.revision ?? 0;
+  if (previous != null && before > 0 && built.namesTheSameFilesAs(previous)) {
+    return before;
+  }
+  final utc = now.toUtc();
+  String two(int v) => v.toString().padLeft(2, '0');
+  final stamp = int.parse('${utc.year}${two(utc.month)}${two(utc.day)}'
+      '${two(utc.hour)}${two(utc.minute)}${two(utc.second)}');
+  return stamp > before ? stamp : before + 1;
+}

@@ -58,6 +58,7 @@ void main(List<String> args) {
   var updatesDir = '$dataRoot/updates';
   var layoutsDir = '';
   var layoutOut = '';
+  int? manifestRevision;
 
   for (var i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -75,12 +76,15 @@ void main(List<String> args) {
         if (i + 1 < args.length) layoutsDir = args[++i];
       case '--layout-out':
         if (i + 1 < args.length) layoutOut = args[++i];
+      case '--manifest-revision':
+        if (i + 1 < args.length) manifestRevision = int.tryParse(args[++i]);
       case '-h':
       case '--help':
         stdout.writeln('usage: dart run bin/bundle.dart '
             '[--data <dir>] [--out <dir>] [--revision <rev>] '
             '[--corrections <file>] [--updates <dir>] '
-            '[--layouts <dir>] [--layout-out <dir>]');
+            '[--layouts <dir>] [--layout-out <dir>] '
+            '[--manifest-revision <n>]');
         return;
     }
   }
@@ -277,7 +281,7 @@ void main(List<String> args) {
     }
   }
 
-  final manifest = DatasetManifest(
+  final built = DatasetManifest(
     // Stamped by the caller rather than read from the clock, so a rebuild of
     // the same revision produces byte-identical bundles.
     generated: revision,
@@ -285,6 +289,31 @@ void main(List<String> args) {
     bundles: entries,
     patches: patches,
     assets: assets,
+  );
+
+  // The ordering revision is the one thing here that *is* read from the
+  // clock — and it lives in the manifest alone, which is renamed by nothing,
+  // so the bundles stay byte-identical (§3.38). Read before it is overwritten:
+  // the manifest being replaced is what says whether anything changed.
+  final previousFile = File('$outDir/manifest.json');
+  DatasetManifest? previous;
+  if (previousFile.existsSync()) {
+    try {
+      previous = DatasetManifest.fromJson(
+          jsonDecode(previousFile.readAsStringSync()));
+    } on FormatException {
+      previous = null;
+    }
+  }
+  final manifest = DatasetManifest(
+    revision: manifestRevision ??
+        nextManifestRevision(
+            built: built, previous: previous, now: DateTime.now()),
+    generated: built.generated,
+    source: built.source,
+    bundles: built.bundles,
+    patches: built.patches,
+    assets: built.assets,
   );
   File('$outDir/manifest.json').writeAsStringSync(
       '${const JsonEncoder.withIndent('  ').convert(manifest.toJson())}\n');
@@ -315,7 +344,11 @@ void main(List<String> args) {
   stdout
     ..writeln()
     ..writeln('${entries.length} bundles, ${_kb(total)} total')
-    ..writeln('manifest: $outDir/manifest.json');
+    ..writeln('manifest: $outDir/manifest.json')
+    ..writeln(manifest.revision == previous?.revision
+        ? '  revision ${manifest.revision} — unchanged, same files as before'
+        : '  revision ${manifest.revision}'
+            '${previous == null ? '' : ' (was ${previous.revision})'}');
 
   if (assets.isNotEmpty) {
     final total = assets.fold(0, (n, a) => n + a.bytes);
