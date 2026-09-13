@@ -225,6 +225,14 @@ void main(List<String> args) {
       if (linked > 0) _write('$_outRoot/$enhPath', updated);
     }
 
+    // Crusade progression, kept for Crusade support that is not built yet
+    // (§3.39). BSData is the only source that has it, so it is written as
+    // BSData produced it rather than merged; the bundler's file list does not
+    // name it, so nothing ships it and nothing displays it.
+    if (!reportOnly && mapped.crusade.isNotEmpty) {
+      _write('$_outRoot/core/$factionId/crusade.json', mapped.crusade);
+    }
+
     harvested[factionId] = {
       for (final raw in mapped.abilities)
         if (str(raw['ability_id']) case final abilityId?) abilityId,

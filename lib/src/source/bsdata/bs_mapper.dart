@@ -33,6 +33,11 @@ class BsFaction {
   final List<Map<String, Object?>> abilities;
   final List<Map<String, Object?>> compositions;
 
+  /// Crusade progression each datasheet links, kept for Crusade support that
+  /// does not exist yet and shown by nothing (DESIGN.md §3.39). One record per
+  /// datasheet: `{unit_id, crusade: [{name, bsdata_id, contains: [...]}]}`.
+  final List<Map<String, Object?>> crusade;
+
   /// Weapon profiles dropped because the app cannot yet say which of a
   /// datasheet's variants of one weapon it carries. See §3.10.
   final List<String> droppedWeaponVariants;
@@ -51,6 +56,7 @@ class BsFaction {
     required this.abilities,
     required this.compositions,
     required this.collisions,
+    this.crusade = const [],
     this.droppedWeaponVariants = const [],
   });
 }
@@ -84,6 +90,7 @@ class BsMapper {
     final abilities = <String, Map<String, Object?>>{};
     final compositions = <String, Map<String, Object?>>{};
     final collisions = <String>[];
+    final crusade = <Map<String, Object?>>[];
 
     /// Every keyword seen on any weapon profile in the faction.
     ///
@@ -104,6 +111,12 @@ class BsMapper {
       }
 
       final walk = _Walk(index, _pts)..visit(root);
+      if (walk.crusade.isNotEmpty) {
+        crusade.add({
+          'unit_id': id,
+          'crusade': walk.crusade.values.toList(growable: false),
+        });
+      }
 
       units[id] = {
         'id': id,
@@ -257,6 +270,7 @@ class BsMapper {
       abilities: abilities.values.toList(growable: false),
       compositions: compositions.values.toList(growable: false),
       collisions: collisions,
+      crusade: crusade,
     );
   }
 
@@ -755,6 +769,48 @@ class _Walk {
     caseSensitive: false,
   );
 
+  /// The part of [_notThisDatasheet] that is Crusade progression, which is
+  /// **kept rather than discarded** (DESIGN.md §3.39).
+  ///
+  /// Excluded from the datasheet all the same — these trees link out to
+  /// game-wide shared data, and reading them as the unit's own gave an
+  /// Enforcer Commander 180 abilities. But Crusade is planned, and throwing
+  /// them away at read time would mean the dataset has to be re-derived
+  /// before that work can even see what a datasheet offers. So they are
+  /// recorded on one side, by name and BSData id, and nothing displays them.
+  ///
+  /// `warlord` and `enhancement` are matched-play and handled elsewhere;
+  /// `white dwarf` and `expanding the empire` are not certainly Crusade, and
+  /// are left excluded rather than labelled on a guess — a White Dwarf *battle
+  /// trait* is still caught here by the trait term.
+  static final _crusade = RegExp(
+    r'crusade|battle\s*trait|battle\s*scar|relic|specialism|requisition|'
+    r'weapon\s*modification',
+    caseSensitive: false,
+  );
+
+  /// Crusade progression this datasheet links, one record per subtree, each
+  /// naming what it contains one level down. Shallow on purpose: resolving
+  /// further walks into the shared trees that caused the pollution above, and
+  /// the snapshot still holds everything beneath for whoever builds Crusade.
+  final crusade = <String, Map<String, Object?>>{};
+
+  void _keepCrusade(String name, String bsdataId, List<BsEntry> contents) {
+    if (!_crusade.hasMatch(name)) return;
+    final key = bsdataId.isEmpty ? name : bsdataId;
+    crusade.putIfAbsent(key, () => {
+          'name': name,
+          if (bsdataId.isNotEmpty) 'bsdata_id': bsdataId,
+          'contains': [
+            for (final entry in contents)
+              {
+                'name': entry.name,
+                if (entry.id.isNotEmpty) 'bsdata_id': entry.id,
+              },
+          ],
+        });
+  }
+
   bool _belongs(String name) => !_notThisDatasheet.hasMatch(name);
 
   /// Whether the entry currently being read hangs off a wargear choice.
@@ -835,14 +891,24 @@ class _Walk {
     }
     for (final rawGroup in entry.selectionEntryGroups) {
       final group = BsEntry(asMap(rawGroup), entry.sourceId);
-      if (!_belongs(group.name)) continue;
+      if (!_belongs(group.name)) {
+        _keepCrusade(group.name, group.id, _contents(group));
+        continue;
+      }
       _group(group, entry, depth);
     }
     for (final raw in entry.entryLinks) {
-      if (!_belongs(strOr(asMap(raw)['name'], ''))) continue;
+      final linkName = strOr(asMap(raw)['name'], '');
       final target = index.resolve(raw);
+      if (!_belongs(linkName)) {
+        _keepCrusade(linkName, target?.id ?? strOr(asMap(raw)['targetId'], ''),
+            target == null ? const [] : _contents(target));
+        continue;
+      }
       if (target != null && _belongs(target.name)) {
         _child(target, depth, wargear: _inWargear);
+      } else if (target != null) {
+        _keepCrusade(target.name, target.id, _contents(target));
       }
     }
 
@@ -859,6 +925,13 @@ class _Walk {
         if (_belongs(strOr(asMap(raw)['name'], '')))
           if (index.resolve(raw) case final target?) target,
     ];
+    for (final raw in group.entryLinks) {
+      final name = strOr(asMap(raw)['name'], '');
+      if (_belongs(name)) continue;
+      final target = index.resolve(raw);
+      _keepCrusade(name, target?.id ?? strOr(asMap(raw)['targetId'], ''),
+          target == null ? const [] : _contents(target));
+    }
 
     final modelChildren = children.where(_hasUnitProfile).toList();
     if (modelChildren.isNotEmpty) {
@@ -897,9 +970,23 @@ class _Walk {
     // reference list 110 points short.
     for (final raw in group.selectionEntryGroups) {
       final nested = BsEntry(asMap(raw), owner.sourceId);
-      if (_belongs(nested.name)) _group(nested, owner, depth);
+      if (_belongs(nested.name)) {
+        _group(nested, owner, depth);
+      } else {
+        _keepCrusade(nested.name, nested.id, _contents(nested));
+      }
     }
   }
+
+  /// What a subtree holds one level down: its entries, its groups, and what
+  /// its links point at.
+  List<BsEntry> _contents(BsEntry entry) => [
+        for (final raw in entry.selectionEntries) BsEntry(asMap(raw), entry.sourceId),
+        for (final raw in entry.selectionEntryGroups)
+          BsEntry(asMap(raw), entry.sourceId),
+        for (final raw in entry.entryLinks)
+          if (index.resolve(raw) case final target?) target,
+      ];
 
   /// Sums a constraint across a group's entries, or null when none states it.
   int? _sum(List<BsEntry> children, String type, {required int? missing}) {
