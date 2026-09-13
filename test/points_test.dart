@@ -242,4 +242,131 @@ void main() {
           reason: 'a third Riptide would cost 245, not 215');
     }, skip: available ? null : 'no snapshot; run tools/fetch-40kdc.sh');
   });
+
+  // §3.41. A chapter's Munitorum page prices its parent's datasheets at the
+  // chapter's own rate, and so do the god legions for Chaos Space Marine and
+  // Daemon datasheets. The data carried those prices as `allied_points` and
+  // nothing read them, so a Blood Angels army paid the Space Marine price.
+  group('a datasheet is priced at the rate of the army that takes it', () {
+    SourceUnit veterans() => SourceUnit.fromJson({
+          'id': 'veterans',
+          'name': 'Veterans',
+          'points': [
+            {
+              'models': 5,
+              'cost': 105,
+              'unit_count_min': 1,
+              'unit_count_max': 2
+            },
+            {'models': 5, 'cost': 115, 'unit_count_min': 3},
+            {
+              'models': 6,
+              'models_max': 10,
+              'cost': 210,
+              'unit_count_min': 1,
+              'unit_count_max': 2
+            },
+            {'models': 6, 'models_max': 10, 'cost': 220, 'unit_count_min': 3},
+          ],
+          'allied_points': [
+            {
+              'models': 5,
+              'cost': 110,
+              'unit_count_min': 1,
+              'unit_count_max': 2,
+              'host_faction': 'blood-angels'
+            },
+            {
+              'models': 10,
+              'cost': 220,
+              'unit_count_min': 1,
+              'unit_count_max': 2,
+              'host_faction': 'blood-angels'
+            },
+            {
+              'models': 5,
+              'cost': 120,
+              'unit_count_min': 3,
+              'unit_count_max': null,
+              'host_faction': 'blood-angels'
+            },
+            {
+              'models': 10,
+              'cost': 230,
+              'unit_count_min': 3,
+              'unit_count_max': null,
+              'host_faction': 'blood-angels'
+            },
+          ],
+        });
+
+    List<int> basesIn(String army, List<int> sizes) => PointsCalculator(
+          MapCatalogue([veterans()]),
+        )
+            .price(Roster(
+              name: 'test',
+              factionId: army,
+              battleSizeId: 'strike-force',
+              units: [
+                for (final (i, n) in sizes.indexed)
+                  RosterUnit(
+                      instanceId: 'u$i', datasheetId: 'veterans', models: n),
+              ],
+            ))
+            .units
+            .map((u) => u.base)
+            .toList();
+
+    test('the host army pays its own page, copy by copy', () {
+      expect(basesIn('blood-angels', [5, 10, 5]), [110, 220, 120]);
+      expect(basesIn('adeptus-astartes', [5, 10, 5]), [105, 210, 115]);
+      expect(basesIn('ultramarines', [5, 10, 5]), [105, 210, 115],
+          reason: 'a chapter with no price of its own pays the parent rate');
+    });
+
+    test('a host price printed for 10 models covers the bracket 10 falls in',
+        () {
+      expect(basesIn('blood-angels', [7]), [220]);
+    });
+
+    test('a host list with no bracket for a size leaves it unpriced', () {
+      final unit = SourceUnit.fromJson({
+        'id': 'veterans',
+        'points': [
+          {'models': 1, 'cost': 50},
+        ],
+        'allied_points': [
+          {'models': 3, 'cost': 150, 'host_faction': 'blood-angels'},
+        ],
+      });
+      expect(unit.bracketFor(models: 1, army: 'blood-angels'), isNull);
+      expect(unit.bracketFor(models: 1)?.cost, 50);
+    });
+
+    test('through the real data: Blood Angels and Space Marines', () {
+      if (!snapshotAvailable) return;
+      final loader = correctedLoader();
+      int baseIn(String faction) => PointsCalculator(
+            Dataset.of(loader.loadFaction(faction), revision: 'test'),
+          )
+              .price(Roster(
+                name: 'test',
+                factionId: faction,
+                battleSizeId: 'strike-force',
+                units: const [
+                  RosterUnit(
+                    instanceId: 'u1',
+                    datasheetId: 'vanguard-veteran-squad-with-jump-packs',
+                    models: 5,
+                  ),
+                ],
+              ))
+              .units
+              .single
+              .base;
+      // The Munitorum Field Manual's Space Marine and Blood Angels pages.
+      expect(baseIn('adeptus-astartes'), 105);
+      expect(baseIn('blood-angels'), 110);
+    });
+  });
 }

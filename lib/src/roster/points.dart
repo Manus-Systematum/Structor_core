@@ -128,8 +128,8 @@ class PointsCalculator {
         continue;
       }
 
-      final bracket =
-          datasheet.bracketFor(models: unit.models, copyIndex: copyIndex);
+      final bracket = datasheet.bracketFor(
+          models: unit.models, copyIndex: copyIndex, army: roster.factionId);
       if (bracket == null) {
         costs.add(UnitCost(
           instanceId: unit.instanceId,

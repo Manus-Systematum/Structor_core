@@ -98,12 +98,16 @@ class PointsBracket {
   final int? unitCountMin;
   final int? unitCountMax;
 
+  /// Set on an `allied_points` bracket: the army this price applies in.
+  final String? hostFaction;
+
   const PointsBracket({
     required this.models,
     required this.cost,
     this.modelsMax,
     this.unitCountMin,
     this.unitCountMax,
+    this.hostFaction,
   });
 
   factory PointsBracket.fromJson(Object? v) {
@@ -114,8 +118,15 @@ class PointsBracket {
       cost: intOr(j['cost'], 0),
       unitCountMin: asInt(j['unit_count_min']),
       unitCountMax: asInt(j['unit_count_max']),
+      hostFaction: str(j['host_faction']),
     );
   }
+
+  bool _covers(int models, int copyIndex) =>
+      models >= this.models &&
+      models <= (modelsMax ?? this.models) &&
+      copyIndex >= (unitCountMin ?? 1) &&
+      copyIndex <= (unitCountMax ?? 1 << 30);
 
   /// True when this bracket's price depends on how many copies of the datasheet
   /// the roster already holds.
@@ -554,6 +565,13 @@ class SourceUnit {
   final List<ModelProfile> profiles;
   final List<PointsBracket> points;
 
+  /// The same datasheet's price in another army, one list per host faction.
+  /// A chapter's Munitorum page prices its parent's datasheets at its own
+  /// rate — Vanguard Veterans with Jump Packs are 105 in a Space Marine army
+  /// and 110 in a Blood Angels one — and so do the god legions for Chaos
+  /// Space Marine and Daemon datasheets (§3.41).
+  final List<PointsBracket> alliedPoints;
+
   /// The model's base, as published — `{shape: round, diameter: 32}`,
   /// `{shape: oval, width: 105, length: 70}` or `{shape: hull}`.
   ///
@@ -587,6 +605,7 @@ class SourceUnit {
     required this.factionId,
     required this.profiles,
     required this.points,
+    this.alliedPoints = const [],
     required this.wargearCosts,
     required this.wargearBudgets,
     required this.keywords,
@@ -613,6 +632,10 @@ class SourceUnit {
       baseSizeMm: asMap(j['base_size_mm']),
       points: asList(j['points'])
           .map(PointsBracket.fromJson)
+          .toList(growable: false),
+      alliedPoints: asList(j['allied_points'])
+          .map(PointsBracket.fromJson)
+          .where((b) => b.hostFaction != null)
           .toList(growable: false),
       wargearCosts: asList(j['wargear_costs'])
           .map(WargearCost.fromJson)
@@ -792,14 +815,49 @@ class SourceUnit {
   /// full cost of a unit is `bracketFor(...).cost` plus the per-instance
   /// wargear costs — see DESIGN.md §2.1. Verified against a real 2,000 pt list:
   /// Crisis Fireknife is 100 base + 6 missile pods at 5 = 130.
-  PointsBracket? bracketFor({required int models, int copyIndex = 1}) {
-    for (final b in points) {
-      final withinModels =
-          models >= b.models && models <= (b.modelsMax ?? b.models);
-      final withinCopies = copyIndex >= (b.unitCountMin ?? 1) &&
-          copyIndex <= (b.unitCountMax ?? 1 << 30);
-      if (withinModels && withinCopies) return b;
+  ///
+  /// [army] is the roster's faction. Where this datasheet has a price for that
+  /// army, it is the one used. A host price printed for one model count
+  /// (`10 models`) stands for the whole bracket that count falls in (6–10), since
+  /// both pages price the same unit sizes.
+  PointsBracket? bracketFor({
+    required int models,
+    int copyIndex = 1,
+    String? army,
+  }) {
+    PointsBracket? find(List<PointsBracket> brackets) {
+      for (final b in brackets) {
+        if (b._covers(models, copyIndex)) return b;
+      }
+      return null;
     }
+
+    final own = find(points);
+    final hosted = [
+      for (final b in alliedPoints)
+        if (army != null && b.hostFaction == army) b,
+    ];
+    if (hosted.isEmpty) return own;
+
+    final exact = find(hosted);
+    if (exact != null) return exact;
+    if (own == null) return null;
+    for (final b in hosted) {
+      final sameCopies = (b.unitCountMin ?? 1) == (own.unitCountMin ?? 1) &&
+          b.unitCountMax == own.unitCountMax;
+      if (sameCopies && own._covers(b.models, copyIndex)) {
+        return PointsBracket(
+          models: own.models,
+          modelsMax: own.modelsMax,
+          cost: b.cost,
+          unitCountMin: own.unitCountMin,
+          unitCountMax: own.unitCountMax,
+          hostFaction: army,
+        );
+      }
+    }
+    // A host price list that has no bracket for this size is a gap in the
+    // data, and pricing it at another army's rate would hide it.
     return null;
   }
 
