@@ -352,12 +352,19 @@ class WargearSwap {
   final List<String> takes;
   final int? max;
 
+  /// A limit several swaps share — Raptors' `2 selections per 5 models`, at
+  /// most four across flamer, meltagun and plasma gun together.
+  final String? sharedCapName;
+  final int? sharedCap;
+
   const WargearSwap({
     required this.model,
     required this.name,
     this.gives = const [],
     this.takes = const [],
     this.max,
+    this.sharedCapName,
+    this.sharedCap,
   });
 
   factory WargearSwap.fromJson(Object? v) {
@@ -368,6 +375,8 @@ class WargearSwap {
       gives: strList(j['gives']),
       takes: strList(j['takes']),
       max: j['max'] == null ? null : intOr(j['max'], 0),
+      sharedCapName: str(j['shared_cap_name']),
+      sharedCap: j['shared_cap'] == null ? null : intOr(j['shared_cap'], 0),
     );
   }
 
@@ -377,6 +386,8 @@ class WargearSwap {
         gives: [for (final i in gives) f(i)],
         takes: [for (final i in takes) f(i)],
         max: max,
+        sharedCapName: sharedCapName,
+        sharedCap: sharedCap,
       );
 }
 

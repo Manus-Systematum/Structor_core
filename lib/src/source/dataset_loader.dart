@@ -374,11 +374,12 @@ class DatasetLoader {
       // has slots, and one without is not a snapshot missing something.
       // The parent's first: a catalogue keeps the last entry for a datasheet,
       // and a chapter's own version of one is the one to keep.
-      wargearSlots: [
-        if (parentId != null)
-          ...?_readArray('core/$parentId/wargear-slots.json'),
-        ...?_readArray('core/$factionId/wargear-slots.json'),
-      ]
+      wargearSlots: corrections
+          .applyToWargearSlots(factionId, [
+            if (parentId != null)
+              ...?_readArray('core/$parentId/wargear-slots.json'),
+            ...?_readArray('core/$factionId/wargear-slots.json'),
+          ])
           .map(SourceWargearSlots.fromJson)
           .where((s) => s.unitId.isNotEmpty)
           .toList(growable: false),

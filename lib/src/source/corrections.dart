@@ -135,6 +135,38 @@ class UnitCorrection implements Correction {
   });
 }
 
+/// Weapon slots upstream does not structure, transcribed from the printed
+/// datasheet (DESIGN.md §4.20).
+///
+/// For a datasheet BSData gives no slots, 40kdc's options are all there is —
+/// and 40kdc multiplies independent swaps into combined bundles. A Watch
+/// Sergeant's two printed swaps arrive as one `[xenophase blade, combi-weapon]`
+/// bundle, which is the combined selector the slots exist to remove. Stating
+/// the two slots here lets the loadout drop the bundle the same way it does
+/// wherever BSData has slots of its own.
+class SlotCorrection implements Correction {
+  @override
+  final String faction;
+  final String unitId;
+  @override
+  final String reason;
+  final String? upstream;
+
+  /// Records in `wargear-slots.json`'s own slot shape.
+  final List<Map<String, Object?>> slots;
+
+  @override
+  String get subject => unitId;
+
+  const SlotCorrection({
+    required this.faction,
+    required this.unitId,
+    required this.reason,
+    required this.slots,
+    this.upstream,
+  });
+}
+
 /// A word upstream misspells, and what it should read.
 ///
 /// **Spelling is the one correction that needs no judgement about the game.**
@@ -340,6 +372,9 @@ class DataCorrections {
 
   /// Words upstream misspells (§3.36).
   final List<SpellingCorrection> spellings;
+
+  /// Weapon slots transcribed from the printed datasheet (§4.20).
+  final List<SlotCorrection> slots;
   final List<WeaponCorrection> weapons;
   final List<EnhancementCorrection> enhancements;
   final List<PhaseMappingCorrection> phaseMappings;
@@ -349,6 +384,7 @@ class DataCorrections {
     this.abilities = const [],
     this.units = const [],
     this.spellings = const [],
+    this.slots = const [],
     this.weapons = const [],
     this.enhancements = const [],
     this.phaseMappings = const [],
@@ -361,6 +397,7 @@ class DataCorrections {
       abilities.isEmpty &&
       units.isEmpty &&
       spellings.isEmpty &&
+      slots.isEmpty &&
       weapons.isEmpty &&
       enhancements.isEmpty &&
       phaseMappings.isEmpty &&
@@ -531,6 +568,39 @@ class DataCorrections {
           _ => node,
         };
     return walk(json);
+  }
+
+  /// Adds transcribed slots to raw `wargear-slots.json` records, creating a
+  /// datasheet's record when upstream has none.
+  List<Object?> applyToWargearSlots(String factionId, List<Object?> records) {
+    final mine = [
+      for (final c in slots)
+        if (c.faction == factionId || c.faction == _anyFaction) c,
+    ];
+    if (mine.isEmpty) return records;
+    final out = [
+      for (final raw in records)
+        if (raw is Map) {for (final e in raw.entries) '${e.key}': e.value} else raw,
+    ];
+    for (final correction in mine) {
+      final index = out.indexWhere(
+          (r) => r is Map && '${r['unit_id']}' == correction.unitId);
+      if (index == -1) {
+        out.add({
+          'unit_id': correction.unitId,
+          'slots': correction.slots,
+          'corrected': {'reason': correction.reason},
+        });
+      } else {
+        final record = out[index]! as Map<String, Object?>;
+        out[index] = {
+          ...record,
+          'slots': [...asList(record['slots']), ...correction.slots],
+          'corrected': {'reason': correction.reason},
+        };
+      }
+    }
+    return out;
   }
 
   /// Applies unit corrections to raw `units.json` records.
@@ -918,6 +988,27 @@ class DataCorrections {
       }
     }
 
+    final slotCorrections = <SlotCorrection>[];
+    final rawSlotCorrections = root['wargear_slots'];
+    if (rawSlotCorrections is List) {
+      for (final node in rawSlotCorrections) {
+        if (node is! Map) continue;
+        final reason = node['reason']?.toString().trim() ?? '';
+        final slots = <Map<String, Object?>>[
+          for (final item in asList(_plain(node['slots'])))
+            if (item is Map<String, Object?>) item,
+        ];
+        if (reason.isEmpty || slots.isEmpty) continue;
+        slotCorrections.add(SlotCorrection(
+          faction: node['faction']?.toString() ?? '',
+          unitId: node['id']?.toString() ?? '',
+          reason: reason,
+          upstream: node['upstream']?.toString(),
+          slots: slots,
+        ));
+      }
+    }
+
     final spellings = <SpellingCorrection>[];
     final rawSpellings = root['spellings'];
     if (rawSpellings is List) {
@@ -1028,6 +1119,7 @@ class DataCorrections {
       abilities: abilities,
       units: units,
       spellings: spellings,
+      slots: slotCorrections,
       weapons: weapons,
       enhancements: enhancements,
       phaseMappings: phaseMappings,

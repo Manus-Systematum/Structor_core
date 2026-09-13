@@ -178,6 +178,11 @@ void main(List<String> args) {
     files['abilities'] = loader.correctedAbilities(factionId).records;
     files['units'] = loader.correctedUnits(factionId).records;
     files['weapons'] = loader.correctedWeapons(factionId).records;
+    // Transcribed slots ride in the faction's own file, as the loader reads
+    // them (§4.20). Only the faction's own records: a chapter's bundle does
+    // not carry its parent's datasheets, so it does not carry their slots.
+    files['wargear-slots'] = loader.corrections
+        .applyToWargearSlots(factionId, files['wargear-slots']!);
 
     final self = files['factions']!
         .whereType<Map<String, Object?>>()

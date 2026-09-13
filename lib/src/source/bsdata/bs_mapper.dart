@@ -1551,10 +1551,25 @@ class _SlotReader {
       if (entry.type == 'model') slots.addAll(_slots(entry));
 
       for (final group in _groups(entry)) {
-        final models = [
+        // **Loadouts can sit a group deeper, under a shared cap.** Raptors keep
+        // their flamer, meltagun and plasma gun under `2 selections per 5
+        // models` (max 4), inside the squad's own group; reading only a
+        // group's direct models missed all three, and 40kdc's combined bundle
+        // for them survived beside the slots. The sub-group's cap is kept on
+        // each swap it holds, because it is the limit that actually binds.
+        final shared = <String, ({String name, int? max})>{};
+        final models = <BsEntry>[
           for (final c in _children(group))
             if (c.type == 'model') c,
         ];
+        for (final sub in _groups(group)) {
+          final subMax = _constraintOf(sub, 'max');
+          for (final c in _children(sub)) {
+            if (c.type != 'model') continue;
+            models.add(c);
+            shared[c.id] = (name: sub.name, max: subMax);
+          }
+        }
         final loadouts = models.where((m) => m.name.contains(' w/ ')).toList();
         if (loadouts.isNotEmpty && models.length > 1) {
           // The model the others are variations of: the one not named for a
@@ -1585,6 +1600,10 @@ class _SlotReader {
               'gives': gives,
               if (takes.isNotEmpty) 'takes': takes,
               if (_constraintOf(model, 'max') case final max?) 'max': max,
+              if (shared[model.id] case final cap?) ...{
+                'shared_cap_name': cap.name,
+                if (cap.max != null) 'shared_cap': cap.max,
+              },
             });
           }
         }

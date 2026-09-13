@@ -183,13 +183,35 @@ class LoadoutSwap {
   final List<String> takes;
   final int? max;
 
+  /// A limit this swap shares with others, and the source's name for it.
+  final String? sharedCapName;
+  final int? sharedCap;
+
   const LoadoutSwap({
     required this.model,
     required this.name,
     required this.gives,
     required this.takes,
     this.max,
+    this.sharedCapName,
+    this.sharedCap,
   });
+
+  /// What the model carries once it swaps, from the source's own name —
+  /// `Veteran w/ Astartes shield and boltgun` is "Astartes shield and
+  /// boltgun". Null when the name does not say, and the caller names what the
+  /// swap gives instead.
+  ///
+  /// **The loadout, not the difference.** That Veteran's swap *gives* a shield
+  /// and a close combat weapon and gives up a power weapon; labelled by what
+  /// it gives, it reads as though the boltgun went too.
+  String? get loadout {
+    final at = name.indexOf(' w/ ');
+    if (at < 0) return null;
+    final rest = name.substring(at + 4).trim();
+    if (rest.isEmpty) return null;
+    return rest[0].toUpperCase() + rest.substring(1);
+  }
 }
 
 /// What each slot and swap currently holds, read from a unit.
@@ -250,9 +272,20 @@ class UnitLoadout {
   final List<LoadoutSlot> slots;
   final List<LoadoutSwap> swaps;
 
+  /// The most of an item the whole unit may carry, for items the slots and
+  /// swaps cover, where a source states one.
+  ///
+  /// **One number across every control that gives the item.** Printed: "2
+  /// models can each have their burst cannon replaced with 1 fusion blaster".
+  /// BSData offers that as a Shas'vre slot and a Shas'ui swap of up to two,
+  /// which between them allow three; the cap is what says the third is over.
+  /// Shown, not enforced — the builder stays permissive (§2.3).
+  final Map<String, int> itemCaps;
+
   const UnitLoadout({
     this.slots = const [],
     this.swaps = const [],
+    this.itemCaps = const {},
     required this.fixed,
     required this.groups,
     required this.counters,
@@ -261,9 +294,24 @@ class UnitLoadout {
 
   bool isFixed(String itemId) => fixed.containsKey(itemId);
 
+  /// Everything the unit carries or could take, by any control.
+  ///
+  /// One definition, because it had two: the editor and a test each built
+  /// the set by hand, and when slots arrived the test's copy went on leaving
+  /// out every weapon a slot offers.
+  Set<String> get takeable => {
+        for (final slot in slots) ...slot.items,
+        for (final swap in swaps) ...swap.gives,
+        ...fixed.keys,
+        for (final group in groups) ...group.items,
+        for (final counter in counters) counter.itemId,
+      };
+
   /// True when nothing is published for this datasheet, so the editor should
   /// stay entirely permissive rather than imply a rule it has not got.
   bool get isUnpublished =>
+      slots.isEmpty &&
+      swaps.isEmpty &&
       groups.isEmpty &&
       counters.every((c) =>
           c.statedMax == null && c.perModels == null && c.replaces.isEmpty);
@@ -333,6 +381,16 @@ class UnitLoadout {
             for (final entry in defaults.entries)
               if (!replaceable.contains(entry.key)) entry.key: entry.value,
           };
+
+    final coverCaps = <String, int>{};
+    for (final option in options) {
+      final cap = option.maxCount;
+      if (cap == null) continue;
+      for (final item in option.offered) {
+        if (!covered.contains(item)) continue;
+        coverCaps[item] = _tighter(coverCaps[item], cap)!;
+      }
+    }
 
     final groups = <LoadoutGroup>[];
     final constrained = <String, SourceWargearOption>{};
@@ -430,9 +488,16 @@ class UnitLoadout {
           ),
     ];
 
+    final itemCaps = <String, int>{
+      for (final item in covered)
+        if (_tighter(coverCaps[item], budgeted[item]) case final cap?)
+          item: cap,
+    };
+
     return UnitLoadout(
       slots: slots,
       swaps: swaps,
+      itemCaps: itemCaps,
       fixed: fixed,
       groups: groups,
       counters: counters,
@@ -543,9 +608,32 @@ class UnitLoadout {
               gives: swap.gives,
               takes: swap.takes,
               max: swap.max,
+              sharedCapName: swap.sharedCapName,
+              sharedCap: swap.sharedCap,
             ),
       ],
     );
+  }
+
+  /// How many models of [model]'s type [unit] has at its size — the pool a
+  /// squad's counted swaps draw from.
+  ///
+  /// Matched to the composition by name; everything the other model entries
+  /// need at their minimum is set aside, so a ten-model Raptor squad with one
+  /// Champion offers nine.
+  static int modelsOf(RosterUnit unit, UnitComposition? composition, String model) {
+    final wanted = _fold(model);
+    final models = composition?.models ?? const <CompositionModel>[];
+    CompositionModel? match;
+    for (final m in models) {
+      if (_fold(m.name) == wanted) match = m;
+    }
+    if (match == null) return unit.models;
+    final others = models
+        .where((m) => !identical(m, match))
+        .fold(0, (sum, m) => sum + m.min);
+    final available = unit.models - others;
+    return available.clamp(0, match.max).toInt();
   }
 
   /// The default loadout at [models], scaled the way "Default loadout" scales
