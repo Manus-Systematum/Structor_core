@@ -93,6 +93,9 @@ class FactionData {
   /// permission (§4.5).
   final List<SourceWargearOption> wargearOptions;
 
+  /// BSData's weapon slots and counted swaps, per datasheet (§4.20).
+  final List<SourceWargearSlots> wargearSlots;
+
   /// The army rule every unit in the faction has — For the Greater Good, Oath
   /// of Moment. `factions.json` has always carried it; nothing read the file,
   /// so the one rule that is true of the whole army was the one rule the app
@@ -131,6 +134,7 @@ class FactionData {
     this.enhancements = const [],
     this.compositions = const [],
     this.wargearOptions = const [],
+    this.wargearSlots = const [],
     this.factionRuleId,
     this.factionName,
     this.factionKeywords = const [],
@@ -365,6 +369,18 @@ class DatasetLoader {
       compositions: sheets('core', 'unit-compositions.json')
           .map(UnitComposition.fromJson)
           .where((c) => c.unitId.isNotEmpty)
+          .toList(growable: false),
+      // Optional, unlike the datasheet files: only a faction BSData structures
+      // has slots, and one without is not a snapshot missing something.
+      // The parent's first: a catalogue keeps the last entry for a datasheet,
+      // and a chapter's own version of one is the one to keep.
+      wargearSlots: [
+        if (parentId != null)
+          ...?_readArray('core/$parentId/wargear-slots.json'),
+        ...?_readArray('core/$factionId/wargear-slots.json'),
+      ]
+          .map(SourceWargearSlots.fromJson)
+          .where((s) => s.unitId.isNotEmpty)
           .toList(growable: false),
       wargearOptions: sheets('core', 'wargear-options.json')
           .map(SourceWargearOption.fromJson)

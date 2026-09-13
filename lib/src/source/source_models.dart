@@ -283,6 +283,132 @@ String foldKeyword(String value) => value
     .join(' ')
     .trim();
 
+/// One weapon slot on one model: pick one choice, or keep the default
+/// (`wargear-slots.json`, DESIGN.md §4.20).
+///
+/// **One swap, not a product of swaps.** 40kdc multiplies a model's independent
+/// swaps together — an Intercessor Sergeant's four bolt-rifle replacements and
+/// four close-combat-weapon replacements became a fifteen-bundle selector — and
+/// the editor showed that as a second selector that changed with the first.
+/// A slot is one of the two things the printed datasheet actually lists.
+class WargearSlot {
+  /// The model the slot is on, as BSData names it.
+  final String model;
+
+  /// BSData's name for the slot — `Weapon 1`, `Pistol`, `Melee weapon`.
+  final String name;
+
+  /// What the model carries with nothing chosen. Empty when BSData does not
+  /// resolve it; the loadout fills it from the composition then.
+  final List<String> defaultItems;
+
+  /// The alternatives, each what choosing it puts on the model. A choice can
+  /// be more than one item: `Paired accursed weapons` replaces two.
+  final List<List<String>> choices;
+
+  /// How many models the slot applies to — one on a leader, the entry's
+  /// maximum on a model entry standing for several.
+  final int perModels;
+
+  const WargearSlot({
+    required this.model,
+    required this.name,
+    this.defaultItems = const [],
+    this.choices = const [],
+    this.perModels = 1,
+  });
+
+  factory WargearSlot.fromJson(Object? v) {
+    final j = asMap(v);
+    return WargearSlot(
+      model: strOr(j['model'], ''),
+      name: strOr(j['name'], ''),
+      defaultItems: strList(j['default']),
+      choices: [for (final c in asList(j['choices'])) strList(c)],
+      perModels: intOr(j['per_models'], 1),
+    );
+  }
+
+  /// Every item the slot can put on the model, its default included.
+  Set<String> get items => {...defaultItems, for (final c in choices) ...c};
+
+  WargearSlot mapIds(String Function(String) f) => WargearSlot(
+        model: model,
+        name: name,
+        defaultItems: [for (final i in defaultItems) f(i)],
+        choices: [
+          for (final c in choices) [for (final i in c) f(i)],
+        ],
+        perModels: perModels,
+      );
+}
+
+/// A counted swap across a squad: up to [max] models trade [takes] for
+/// [gives] — `Raptor w/ plasma pistol`, up to four.
+class WargearSwap {
+  final String model;
+  final String name;
+  final List<String> gives;
+  final List<String> takes;
+  final int? max;
+
+  const WargearSwap({
+    required this.model,
+    required this.name,
+    this.gives = const [],
+    this.takes = const [],
+    this.max,
+  });
+
+  factory WargearSwap.fromJson(Object? v) {
+    final j = asMap(v);
+    return WargearSwap(
+      model: strOr(j['model'], ''),
+      name: strOr(j['name'], ''),
+      gives: strList(j['gives']),
+      takes: strList(j['takes']),
+      max: j['max'] == null ? null : intOr(j['max'], 0),
+    );
+  }
+
+  WargearSwap mapIds(String Function(String) f) => WargearSwap(
+        model: model,
+        name: name,
+        gives: [for (final i in gives) f(i)],
+        takes: [for (final i in takes) f(i)],
+        max: max,
+      );
+}
+
+/// One datasheet's slots and counted swaps.
+class SourceWargearSlots {
+  final String unitId;
+  final List<WargearSlot> slots;
+  final List<WargearSwap> swaps;
+
+  const SourceWargearSlots({
+    required this.unitId,
+    this.slots = const [],
+    this.swaps = const [],
+  });
+
+  factory SourceWargearSlots.fromJson(Object? v) {
+    final j = asMap(v);
+    return SourceWargearSlots(
+      unitId: strOr(j['unit_id'], ''),
+      slots: asList(j['slots']).map(WargearSlot.fromJson).toList(),
+      swaps: asList(j['swaps']).map(WargearSwap.fromJson).toList(),
+    );
+  }
+
+  /// Every item any slot or swap names.
+  Set<String> get items => {
+        for (final slot in slots) ...slot.items,
+        for (final swap in swaps) ...swap.gives,
+        for (final swap in swaps) ...swap.takes,
+      };
+}
+
 /// One published wargear choice for one datasheet (`wargear-options.json`).
 ///
 /// The file was fetched from the start and never parsed, because §2.3 settled

@@ -281,6 +281,116 @@ class RosterEditor {
     return next;
   }
 
+  /// Sets which choices the models in one weapon slot took (DESIGN.md §4.20).
+  ///
+  /// [choices] is one choice index per model that swapped — `[2]` for a
+  /// Sergeant who took his third option, `[0, 0]` for two squad members who
+  /// took the first. An empty list returns the slot to its default.
+  ///
+  /// **The counts move by exactly what the slot changed**, so every other
+  /// slot, swap and hand-set counter keeps what it had. And the whole reading
+  /// is written back as the unit's record, which is what keeps a second slot
+  /// offering the same gun from claiming the first one's choice on the next
+  /// read.
+  Roster chooseInSlot(
+    Roster roster,
+    String instanceId,
+    UnitLoadout loadout,
+    int slotIndex,
+    List<int> choices,
+  ) {
+    final unit = _unit(roster, instanceId);
+    if (unit == null || slotIndex < 0 || slotIndex >= loadout.slots.length) {
+      return roster;
+    }
+    final slot = loadout.slots[slotIndex];
+    final wanted = [
+      for (final c in choices)
+        if (c >= 0 && c < slot.choices.length) c,
+    ].take(slot.seats).toList();
+    final reading =
+        loadout.read(unit, catalogue.composition(unit.datasheetId));
+
+    final change = <String, int>{};
+    void apply(List<int> taken, int sign) {
+      for (final choice in taken) {
+        final d = slot.delta(choice);
+        for (final e in d.adds.entries) {
+          change[e.key] = (change[e.key] ?? 0) + sign * e.value;
+        }
+        for (final e in d.removes.entries) {
+          change[e.key] = (change[e.key] ?? 0) - sign * e.value;
+        }
+      }
+    }
+
+    apply(reading.slots[slotIndex], -1);
+    apply(wanted, 1);
+
+    // Every slot, empty ones included: an empty list says "left at its
+    // default", which a missing key cannot — and a missing key is what lets
+    // the counts be read as someone else's choice.
+    final record = {
+      for (final (index, other) in loadout.slots.indexed)
+        other.key: index == slotIndex ? wanted : reading.slots[index],
+    };
+    return _changeCounts(roster, instanceId, change, slotChoices: record);
+  }
+
+  /// Sets how many models took one counted swap — `Raptor w/ plasma pistol`.
+  Roster setSwapCount(
+    Roster roster,
+    String instanceId,
+    UnitLoadout loadout,
+    int swapIndex,
+    int count,
+  ) {
+    final unit = _unit(roster, instanceId);
+    if (unit == null || swapIndex < 0 || swapIndex >= loadout.swaps.length) {
+      return roster;
+    }
+    final swap = loadout.swaps[swapIndex];
+    final reading =
+        loadout.read(unit, catalogue.composition(unit.datasheetId));
+    final wanted = swap.max == null ? count.clamp(0, 1 << 20) : count.clamp(0, swap.max!);
+    final delta = wanted - reading.swaps[swapIndex];
+    if (delta == 0) return roster;
+
+    final change = <String, int>{};
+    for (final item in swap.gives) {
+      change[item] = (change[item] ?? 0) + delta;
+    }
+    for (final item in swap.takes) {
+      change[item] = (change[item] ?? 0) - delta;
+    }
+    final record = {
+      for (final (index, slot) in loadout.slots.indexed)
+        slot.key: reading.slots[index],
+    };
+    return _changeCounts(roster, instanceId, change, slotChoices: record);
+  }
+
+  /// Adds [change] to a unit's counts, never below zero, and stores [slotChoices].
+  Roster _changeCounts(
+    Roster roster,
+    String instanceId,
+    Map<String, int> change, {
+    required Map<String, List<int>> slotChoices,
+  }) =>
+      _mapUnit(roster, instanceId, (unit) {
+        final counts = {for (final w in unit.wargear) w.itemId: w.count};
+        for (final e in change.entries) {
+          counts[e.key] = ((counts[e.key] ?? 0) + e.value).clamp(0, 1 << 20).toInt();
+        }
+        return unit.copyWith(
+          wargear: [
+            for (final e in counts.entries)
+              if (e.value > 0) WargearSelection(itemId: e.key, count: e.value),
+          ],
+          slotChoices: slotChoices,
+        );
+      });
+
   /// How many of each item a list names, since it names one per copy.
   Map<String, int> _multiplicity(Iterable<String> items) {
     final out = <String, int>{};
@@ -380,13 +490,17 @@ class RosterEditor {
       // its smallest legal form.
       final base = composition.defaultModels;
       final factor = base <= 0 ? 1 : (u.models / base);
-      return u.copyWith(wargear: [
-        for (final entry in composition.defaultWargear().entries)
-          WargearSelection(
-            itemId: entry.key,
-            count: (entry.value * factor).round().clamp(1, 1 << 20),
-          ),
-      ]);
+      return u.copyWith(
+        wargear: [
+          for (final entry in composition.defaultWargear().entries)
+            WargearSelection(
+              itemId: entry.key,
+              count: (entry.value * factor).round().clamp(1, 1 << 20),
+            ),
+        ],
+        // No choice survives a return to the default loadout.
+        slotChoices: const {},
+      );
     });
   }
 

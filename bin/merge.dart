@@ -232,6 +232,11 @@ void main(List<String> args) {
     if (!reportOnly && mapped.crusade.isNotEmpty) {
       _write('$_outRoot/core/$factionId/crusade.json', mapped.crusade);
     }
+    // Weapon slots, which 40kdc has no equivalent of (§4.20). Written as BSData
+    // produced them; the loader decides per datasheet whether to trust them.
+    if (!reportOnly && mapped.wargearSlots.isNotEmpty) {
+      _write('$_outRoot/core/$factionId/wargear-slots.json', mapped.wargearSlots);
+    }
 
     harvested[factionId] = {
       for (final raw in mapped.abilities)

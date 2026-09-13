@@ -164,12 +164,14 @@ void main() {
       expect(capped.map((o) => o.maxCount), everyElement(lessThan(4)));
     }, skip: available ? null : 'no snapshot');
 
-    test('the cap is carried on the counter for the editor to show', () {
+    test('the cap is carried on the control for the editor to show', () {
+      // A counted swap since §4.20: `Stealth Shas'ui w/ fusion blaster`, up to
+      // two, giving up the burst cannon.
       final loadout = loadoutFor(load('tau-empire'), 'stealth-battlesuits');
-      final fusion =
-          loadout.counters.singleWhere((c) => c.itemId == 'fusion-blaster');
-      expect(fusion.statedMax, 2);
-      expect(fusion.replaces, contains('burst-cannon'));
+      final fusion = loadout.swaps
+          .singleWhere((w) => w.gives.contains('fusion-blaster'));
+      expect(fusion.max, 2);
+      expect(fusion.takes, contains('burst-cannon'));
     }, skip: available ? null : 'no snapshot');
   });
   group('what the builder offers is equipment, not rules', () {

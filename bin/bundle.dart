@@ -41,6 +41,9 @@ const _factionFiles = [
   'weapons',
   'wargear',
   'wargear-options',
+  // Weapon slots from BSData (§4.20). Unlike crusade.json this is shown: the
+  // editor's wargear choices are built from it wherever it resolves.
+  'wargear-slots',
   'unit-compositions',
   'detachments',
   'enhancements',

@@ -187,6 +187,14 @@ class Dataset implements Catalogue {
       ];
 
   @override
+  SourceWargearSlots? wargearSlots(String datasheetId) {
+    for (final slots in faction.wargearSlots) {
+      if (slots.unitId == datasheetId) return slots;
+    }
+    return null;
+  }
+
+  @override
   UnitComposition? composition(String datasheetId) {
     for (final c in faction.compositions) {
       if (c.unitId == datasheetId) return c;

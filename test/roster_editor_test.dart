@@ -483,24 +483,26 @@ void main() {
     // The option is published carrier-scoped as `multi-melta-paragon-warsuits`
     // and the roster stores `multi-melta`; unscoped, they are the same item.
     // Read raw this found nothing and the test passed by doing nothing, which
-    // is how the bug survived being written about.
-    final counter =
-        loadout.counters.where((c) => c.itemId == 'multi-melta').single;
-    expect(counter.replaces, contains('heavy-bolter'),
-        reason: 'the option says what it gives up');
+    // is how the bug survived being written about. A slot since §4.20: the
+    // Superior's `Paragon Ranged Weapon`, a heavy bolter by default.
+    final slot = loadout.slots.indexWhere((s) =>
+        s.model == 'Paragon Superior' && s.name == 'Paragon Ranged Weapon');
+    expect(slot, isNot(-1));
+    expect(loadout.slots[slot].defaultItems, ['heavy-bolter'],
+        reason: 'the slot says what it gives up');
+    final multimelta = loadout.slots[slot].choices
+        .indexWhere((c) => c.length == 1 && c.single == 'multi-melta');
 
     final bolters = roster.units.single.countOf('heavy-bolter');
     expect(bolters, greaterThan(0));
 
-    roster = editor.swapWargear(roster, id, 'multi-melta', 1,
-        replaces: counter.replaces);
+    roster = editor.chooseInSlot(roster, id, loadout, slot, [multimelta]);
     expect(roster.units.single.countOf('multi-melta'), 1);
     expect(roster.units.single.countOf('heavy-bolter'), bolters - 1,
         reason: 'the bolter it replaces is given up');
 
     // And putting it back restores the bolter.
-    roster = editor.swapWargear(roster, id, 'multi-melta', 0,
-        replaces: counter.replaces);
+    roster = editor.chooseInSlot(roster, id, loadout, slot, const []);
     expect(roster.units.single.countOf('heavy-bolter'), bolters);
   });
 

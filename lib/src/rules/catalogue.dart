@@ -46,6 +46,10 @@ abstract interface class Catalogue {
   /// published" rather than "nothing is allowed" (DESIGN.md §4.5).
   List<SourceWargearOption> wargearOptions(String datasheetId) => const [];
 
+  /// BSData's weapon slots for a datasheet, or null when it publishes none
+  /// (§4.20).
+  SourceWargearSlots? wargearSlots(String datasheetId) => null;
+
   /// Datasheets [leaderDatasheetId] may join. Empty when the datasheet is not
   /// a leader, or when no attachment rule is published for it.
   List<String> eligibleBodyguards(String leaderDatasheetId);
@@ -97,6 +101,7 @@ class MapCatalogue implements Catalogue {
   final Map<String, SourceEnhancement> _enhancements;
   final Map<String, UnitComposition> _compositions;
   final Map<String, List<SourceWargearOption>> _wargearOptions;
+  final Map<String, SourceWargearSlots> _wargearSlots;
   final Map<String, List<String>> _phases;
   final List<String> _factionKeywords;
 
@@ -113,6 +118,7 @@ class MapCatalogue implements Catalogue {
     Iterable<SourceEnhancement> enhancements = const [],
     Iterable<UnitComposition> compositions = const [],
     Iterable<SourceWargearOption> wargearOptions = const [],
+    Iterable<SourceWargearSlots> wargearSlots = const [],
     Iterable<PhaseMapping> phaseMappings = const [],
   })  : _factionKeywords = factionKeywords,
         _units = {for (final u in units) u.id: u},
@@ -126,6 +132,7 @@ class MapCatalogue implements Catalogue {
           (map, option) =>
               map..putIfAbsent(option.unitId, () => []).add(option),
         ),
+        _wargearSlots = {for (final s in wargearSlots) s.unitId: s},
         _phases = {
           for (final m in phaseMappings)
             if (m.phases.isNotEmpty) m.sourceId: m.phases,
@@ -146,6 +153,7 @@ class MapCatalogue implements Catalogue {
         enhancements: faction.enhancements,
         compositions: faction.compositions,
         wargearOptions: faction.wargearOptions,
+        wargearSlots: faction.wargearSlots,
       );
 
   @override
@@ -164,6 +172,10 @@ class MapCatalogue implements Catalogue {
   @override
   List<SourceWargearOption> wargearOptions(String datasheetId) =>
       _wargearOptions[datasheetId] ?? const [];
+
+  @override
+  SourceWargearSlots? wargearSlots(String datasheetId) =>
+      _wargearSlots[datasheetId];
 
   @override
   Iterable<SourceUnit> get allUnits => _units.values;

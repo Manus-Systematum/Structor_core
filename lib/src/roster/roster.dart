@@ -72,12 +72,24 @@ class RosterUnit {
   final int models;
   final List<WargearSelection> wargear;
 
+  /// Which choice was taken in which weapon slot, by `model|slot` — one index
+  /// per model that swapped (DESIGN.md §4.20).
+  ///
+  /// **Intent, not state.** [wargear] stays the only thing pricing, the
+  /// validator, export and import read. Counts alone cannot say *which model*
+  /// made a swap — a Vanguard Veteran taking a master-crafted power weapon and
+  /// the Sergeant taking one are the same counts — so the editor records which
+  /// slot a player changed and reads it back, and derives from the counts
+  /// whenever this is absent or no longer agrees with them.
+  final Map<String, List<int>> slotChoices;
+
   const RosterUnit({
     required this.instanceId,
     required this.datasheetId,
     required this.models,
     this.customName,
     this.wargear = const [],
+    this.slotChoices = const {},
   });
 
   factory RosterUnit.fromJson(Object? v) {
@@ -90,6 +102,10 @@ class RosterUnit {
       wargear: asList(j['wargear'])
           .map(WargearSelection.fromJson)
           .toList(growable: false),
+      slotChoices: {
+        for (final entry in asMap(j['slotChoices']).entries)
+          entry.key: [for (final i in asList(entry.value)) intOr(i, -1)],
+      },
     );
   }
 
@@ -100,6 +116,7 @@ class RosterUnit {
         'models': models,
         if (wargear.isNotEmpty)
           'wargear': wargear.map((w) => w.toJson()).toList(),
+        if (slotChoices.isNotEmpty) 'slotChoices': slotChoices,
       };
 
   int countOf(String itemId) => wargear
@@ -110,6 +127,7 @@ class RosterUnit {
     int? models,
     List<WargearSelection>? wargear,
     String? customName,
+    Map<String, List<int>>? slotChoices,
   }) =>
       RosterUnit(
         instanceId: instanceId,
@@ -117,6 +135,7 @@ class RosterUnit {
         customName: customName ?? this.customName,
         models: models ?? this.models,
         wargear: wargear ?? this.wargear,
+        slotChoices: slotChoices ?? this.slotChoices,
       );
 }
 

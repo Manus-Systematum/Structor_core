@@ -30,11 +30,13 @@ void main() {
         MapCatalogue.ofFaction(loader.loadFaction('adepta-sororitas'));
     final loadout = loadoutOf(catalogue, 'ministorum-priest');
 
-    final group = loadout.groups.single;
-    expect(group.replaces, ['zealots-vindictor']);
+    // A slot since §4.20: BSData's `Wargear` group on the Priest, whose one
+    // alternative to the vindictor is both weapons at once.
+    final slot = loadout.slots.single;
+    expect(slot.defaultItems, ['zealots-vindictor']);
     // Unscoped: `power-weapon-ministorum-priest` is this datasheet's name
     // for the plain `power-weapon` the roster speaks in.
-    expect(group.bundles, [
+    expect(slot.choices, [
       ['holy-pistol', 'power-weapon'],
     ]);
 
@@ -50,12 +52,13 @@ void main() {
     final catalogue = MapCatalogue.ofFaction(loader.loadFaction('drukhari'));
     final loadout = loadoutOf(catalogue, 'razorwing-jetfighter');
 
-    // Two disintegrator cannons replace the splinter cannon — a count a set
-    // of offered items could not express at all.
-    final group = loadout.groups.firstWhere(
-        (g) => g.bundles.any((b) => b.length > 1 && b.toSet().length == 1));
-    expect(
-        group.bundles.single, ['disintegrator-cannon', 'disintegrator-cannon']);
+    // Two disintegrator cannons replace the two dark lances — a count a set
+    // of offered items could not express at all. As printed; 40kdc had them
+    // replacing the splinter cannon, and BSData states the two as the
+    // quantity on the weapon inside each choice (§4.20).
+    final slot = loadout.slots.firstWhere((s) => s.name == 'Main Weapon');
+    expect(slot.defaultItems, ['dark-lance', 'dark-lance']);
+    expect(slot.choices.single, ['disintegrator-cannon', 'disintegrator-cannon']);
   }, skip: skip);
 
   test('a single-item replacement is still a plain counter', () {
@@ -64,7 +67,13 @@ void main() {
     final loadout = loadoutOf(catalogue, 'stealth-battlesuits');
 
     // One fusion blaster for one burst cannon: nothing about it is a bundle.
-    expect(loadout.counters.map((c) => c.itemId), contains('fusion-blaster'));
+    // It arrives as a slot on the Shas'vre and a counted swap on the Shas'ui
+    // (§4.20), each of which trades exactly one gun for one gun.
+    final swap = loadout.swaps
+        .singleWhere((w) => w.gives.contains('fusion-blaster'));
+    expect(swap.gives, ['fusion-blaster']);
+    expect(swap.takes, ['burst-cannon']);
+    expect(loadout.groups.expand((g) => g.items), isNot(contains('fusion-blaster')));
   }, skip: skip);
 
   test('taking the bundle puts both on the unit and takes the old one off', () {
@@ -79,12 +88,7 @@ void main() {
     final instanceId = roster.units.single.instanceId;
     final loadout = loadoutOf(catalogue, 'ministorum-priest');
 
-    roster = editor.selectLoadoutBundle(
-      roster,
-      instanceId,
-      loadout.groups.single,
-      loadout.groups.single.bundles.single,
-    );
+    roster = editor.chooseInSlot(roster, instanceId, loadout, 0, [0]);
 
     final carried = {
       for (final item in roster.units.single.wargear) item.itemId: item.count,

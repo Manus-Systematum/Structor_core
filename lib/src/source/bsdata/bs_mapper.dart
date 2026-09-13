@@ -38,6 +38,10 @@ class BsFaction {
   /// datasheet: `{unit_id, crusade: [{name, bsdata_id, contains: [...]}]}`.
   final List<Map<String, Object?>> crusade;
 
+  /// Each datasheet's weapon slots and counted loadouts, as BSData structures
+  /// them (DESIGN.md §4.20): `{unit_id, slots: [...], swaps: [...]}`.
+  final List<Map<String, Object?>> wargearSlots;
+
   /// Weapon profiles dropped because the app cannot yet say which of a
   /// datasheet's variants of one weapon it carries. See §3.10.
   final List<String> droppedWeaponVariants;
@@ -57,6 +61,7 @@ class BsFaction {
     required this.compositions,
     required this.collisions,
     this.crusade = const [],
+    this.wargearSlots = const [],
     this.droppedWeaponVariants = const [],
   });
 }
@@ -91,6 +96,8 @@ class BsMapper {
     final compositions = <String, Map<String, Object?>>{};
     final collisions = <String>[];
     final crusade = <Map<String, Object?>>[];
+    final slotReader = _SlotReader(index, _Walk.belongsToDatasheet);
+    final rawSlots = <String, Map<String, Object?>>{};
 
     /// Every keyword seen on any weapon profile in the faction.
     ///
@@ -111,6 +118,7 @@ class BsMapper {
       }
 
       final walk = _Walk(index, _pts)..visit(root);
+      if (slotReader.read(root) case final slots?) rawSlots[id] = slots;
       if (walk.crusade.isNotEmpty) {
         crusade.add({
           'unit_id': id,
@@ -226,6 +234,44 @@ class BsMapper {
       unit['weapon_ids'] = resolved;
     }
 
+    // **Slot items are plain slugs, not resolved variant ids.** BSData shares
+    // one weapon entry across datasheets, and resolving through the variant
+    // table named whichever datasheet the variant was assigned to — an
+    // Intercessor Sergeant's plasma pistol came out `plasma-pistol-ancient-on-
+    // bike`. The roster stores weapons unscoped (§7.3.5), so a slot names them
+    // the same way, and the loader checks each against the datasheet it is on.
+    final wargearSlots = <Map<String, Object?>>[];
+    for (final entry in rawSlots.entries) {
+      final unitId = entry.key;
+      String resolve(String key) => key.split('|').first;
+
+      List<String> ids(Object? raw) =>
+          [for (final key in asList(raw)) resolve('$key')];
+
+      final slots = [
+        for (final slot in asList(entry.value['slots']).map(asMap))
+          {
+            ...slot,
+            if (slot['default'] != null) 'default': ids(slot['default']),
+            'choices': [for (final c in asList(slot['choices'])) ids(c)],
+          },
+      ];
+      final swaps = [
+        for (final swap in asList(entry.value['swaps']).map(asMap))
+          {
+            ...swap,
+            'gives': ids(swap['gives']),
+            if (swap['takes'] != null) 'takes': ids(swap['takes']),
+          },
+      ];
+      wargearSlots.add({
+        'unit_id': unitId,
+        if (slots.isNotEmpty) 'slots': slots,
+        if (swaps.isNotEmpty) 'swaps': swaps,
+        'game_version': bsGameVersion,
+      });
+    }
+
     // Detachment rules and enhancements are declared in shared groups rather
     // than on any datasheet, so the unit walk never reaches them. What they
     // carry is their **printed wording**, which 40kdc has for neither: a
@@ -271,6 +317,7 @@ class BsMapper {
       compositions: compositions.values.toList(growable: false),
       collisions: collisions,
       crusade: crusade,
+      wargearSlots: wargearSlots,
     );
   }
 
@@ -813,6 +860,10 @@ class _Walk {
 
   bool _belongs(String name) => !_notThisDatasheet.hasMatch(name);
 
+  /// The same filter, for readers that are not a walk.
+  static bool belongsToDatasheet(String name) =>
+      !_notThisDatasheet.hasMatch(name);
+
   /// Whether the entry currently being read hangs off a wargear choice.
   bool _inWargear = false;
 
@@ -1330,4 +1381,227 @@ class _ModelGroup {
   final int max;
 
   const _ModelGroup(this.name, this.min, this.max);
+}
+
+/// A datasheet's wargear as BSData structures it: weapon slots and counted
+/// loadouts (DESIGN.md §4.20).
+///
+/// **Why this reader exists.** 40kdc publishes a unit's options with its
+/// independent weapon swaps multiplied together — an Intercessor Sergeant's
+/// bolt rifle and close combat weapon each have four replacements, and 40kdc
+/// adds a fifteen-bundle selector that is every pairing of the two — and
+/// splits one "any model" swap into a row per model name. The editor shows
+/// those as duplicate selectors that change together. BSData and the printed
+/// datasheet agree on the real shape, and it is one of two things:
+///
+///   * **a slot** on one model — a group allowing one selection, usually with
+///     a default: the Sergeant's `Weapon 1` is a bolt rifle, or one of four;
+///   * **a counted loadout** — a model entry named for what it carries,
+///     `Raptor w/ plasma pistol`, with a maximum, standing in for that many
+///     squad members swapping.
+///
+/// Groups allowing several selections — a Commander's support systems — are
+/// neither, and are left to the per-item caps that already handle them.
+///
+/// Items are returned as the walk's weapon keys (`slug|entry id`) so the
+/// faction can resolve them to the same final ids as `weapon_ids`; kit that
+/// is not a weapon is its plain slug, which is how wargear is keyed already.
+class _SlotReader {
+  final BsIndex index;
+  final bool Function(String name) belongs;
+
+  _SlotReader(this.index, this.belongs);
+
+  static int? _constraintOf(BsEntry entry, String type) {
+    for (final raw in entry.constraints) {
+      final c = asMap(raw);
+      if (str(c['type']) != type || str(c['field']) != 'selections') continue;
+      final scope = str(c['scope']);
+      if (scope != null && scope != 'parent') continue;
+      return num.tryParse('${c['value']}')?.toInt();
+    }
+    return null;
+  }
+
+  Iterable<BsEntry> _children(BsEntry entry) sync* {
+    for (final raw in entry.selectionEntries) {
+      yield BsEntry(asMap(raw), entry.sourceId);
+    }
+    for (final raw in entry.entryLinks) {
+      if (!belongs(strOr(asMap(raw)['name'], ''))) continue;
+      if (index.resolve(raw) case final target?) yield target;
+    }
+  }
+
+  Iterable<BsEntry> _groups(BsEntry entry) sync* {
+    for (final raw in entry.selectionEntryGroups) {
+      final group = BsEntry(asMap(raw), entry.sourceId);
+      if (belongs(group.name)) yield group;
+    }
+  }
+
+  static bool _isWeapon(BsEntry entry) => entry.profiles.any((raw) {
+        final type = strOr(asMap(raw)['typeName'], '');
+        return type == 'Ranged Weapons' || type == 'Melee Weapons';
+      });
+
+  /// What choosing [entry] puts on the model.
+  ///
+  /// A choice can carry more than one thing — `Boltgun and accursed weapon`
+  /// is one entry holding two guns — so its weapon children count too. A
+  /// choice with no weapon anywhere is kit, keyed by its own name.
+  List<String> _items(BsEntry entry, [int depth = 0]) {
+    final out = <String>[];
+    if (_isWeapon(entry)) out.add('${bsSlug(entry.name)}|${entry.id}');
+    if (depth < 3) {
+      for (final child in _children(entry)) {
+        if (child.type == 'model' || child.type == 'unit') continue;
+        // **A quantity lives on the weapon, not the choice.** `Two dark
+        // lances` holds one `Dark Lance` constrained to exactly two; read as
+        // one, taking the disintegrator cannons swapped a single lance and
+        // left a jet the datasheet does not allow.
+        final copies = _constraintOf(child, 'min') ?? 1;
+        final items = _items(child, depth + 1);
+        for (var i = 0; i < (copies < 1 ? 1 : copies); i++) {
+          out.addAll(items);
+        }
+      }
+    }
+    if (out.isEmpty && depth == 0) {
+      final slug = bsSlug(entry.name);
+      if (slug.isNotEmpty) out.add(slug);
+    }
+    return out;
+  }
+
+  /// Every slot on [model], sub-slots included: a champion's `Wargear` group
+  /// is often only a container for `Melee weapon` and `Pistol`.
+  List<Map<String, Object?>> _slots(BsEntry model) {
+    final out = <Map<String, Object?>>[];
+    void read(BsEntry group) {
+      final children = _children(group).toList();
+      final items = [
+        for (final c in children)
+          if (c.type != 'model' && c.type != 'unit') c,
+      ];
+      final max = _constraintOf(group, 'max');
+      if (items.isNotEmpty && max == 1) {
+        final defaultId = str(group.json['defaultSelectionEntryId']);
+        BsEntry? chosen;
+        for (final raw in group.entryLinks) {
+          final link = asMap(raw);
+          if (str(link['id']) == defaultId || str(link['targetId']) == defaultId) {
+            chosen = index.resolve(raw);
+          }
+        }
+        chosen ??= items.where((c) => c.id == defaultId).firstOrNull;
+        final defaultItems = chosen == null ? const <String>[] : _items(chosen);
+        final choices = [
+          for (final c in items)
+            if (chosen == null || c.id != chosen.id) _items(c),
+        ]..removeWhere((items) => items.isEmpty);
+        if (choices.isNotEmpty) {
+          out.add({
+            'model': bsDisplayName(model.name),
+            'name': group.name,
+            if (defaultItems.isNotEmpty) 'default': defaultItems,
+            'choices': choices,
+            // A slot on a model entry that stands for several models applies
+            // to each of them; on a leader it is one.
+            'per_models': _constraintOf(model, 'max') ?? 1,
+          });
+        }
+      }
+      for (final sub in _groups(group)) {
+        read(sub);
+      }
+    }
+
+    for (final group in _groups(model)) {
+      read(group);
+    }
+    return out;
+  }
+
+  /// What a model carries with nothing chosen: its weapons, and the defaults
+  /// of its own slots.
+  List<String> _carried(BsEntry model) {
+    final out = <String>[];
+    for (final child in _children(model)) {
+      if (child.type == 'model' || child.type == 'unit') continue;
+      final min = _constraintOf(child, 'min') ?? 0;
+      if (_isWeapon(child) || min > 0) out.addAll(_items(child));
+    }
+    for (final slot in _slots(model)) {
+      out.addAll((slot['default'] as List?)?.cast<String>() ?? const []);
+    }
+    return out;
+  }
+
+  /// Slots and counted loadouts for one datasheet, or null when it has none.
+  Map<String, Object?>? read(BsEntry datasheet) {
+    final slots = <Map<String, Object?>>[];
+    final swaps = <Map<String, Object?>>[];
+    final seen = <String>{};
+
+    void visit(BsEntry entry, int depth) {
+      if (depth > 6 || !seen.add(entry.id.isEmpty ? entry.name : entry.id)) {
+        return;
+      }
+      if (entry.type == 'model') slots.addAll(_slots(entry));
+
+      for (final group in _groups(entry)) {
+        final models = [
+          for (final c in _children(group))
+            if (c.type == 'model') c,
+        ];
+        final loadouts = models.where((m) => m.name.contains(' w/ ')).toList();
+        if (loadouts.isNotEmpty && models.length > 1) {
+          // The model the others are variations of: the one not named for a
+          // weapon, or failing that the one the most models may be.
+          final plain = models.where((m) => !m.name.contains(' w/ ')).toList();
+          final base = plain.length == 1
+              ? plain.single
+              : (models.toList()
+                    ..sort((a, b) => (_constraintOf(b, 'max') ?? 0)
+                        .compareTo(_constraintOf(a, 'max') ?? 0)))
+                  .first;
+          final baseItems = _carried(base);
+          for (final model in models) {
+            if (identical(model, base) || model.id == base.id) continue;
+            final carried = _carried(model);
+            final gives = [
+              for (final i in carried)
+                if (!baseItems.map((b) => b.split('|').first).contains(i.split('|').first)) i,
+            ];
+            final takes = [
+              for (final i in baseItems)
+                if (!carried.map((c) => c.split('|').first).contains(i.split('|').first)) i,
+            ];
+            if (gives.isEmpty) continue;
+            swaps.add({
+              'model': bsDisplayName(base.name),
+              'name': bsDisplayName(model.name),
+              'gives': gives,
+              if (takes.isNotEmpty) 'takes': takes,
+              if (_constraintOf(model, 'max') case final max?) 'max': max,
+            });
+          }
+        }
+        for (final model in models) {
+          visit(model, depth + 1);
+        }
+      }
+      for (final child in _children(entry)) {
+        if (child.type == 'model') visit(child, depth + 1);
+      }
+    }
+
+    visit(datasheet, 0);
+    if (slots.isEmpty && swaps.isEmpty) return null;
+    return {
+      if (slots.isNotEmpty) 'slots': slots,
+      if (swaps.isNotEmpty) 'swaps': swaps,
+    };
+  }
 }
