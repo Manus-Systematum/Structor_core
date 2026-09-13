@@ -748,8 +748,17 @@ class _Walk {
   /// `+` beside it. Filtering the group is the fix rather than filtering the
   /// one entry, because the other six are the same kind of thing and would
   /// arrive the moment upstream gave them a profile.
+  ///
+  /// **`relics`, not `relic`.** The Crusade trees are collections and BSData
+  /// names them in the plural — `Crusade Relics`, `Antiquity Relics`,
+  /// `Legendary Relics`, `Artificer Relics`, `Relics of the Matriarchs`.
+  /// Wargear uses `relic` as an adjective instead: a Captain's Relic Shield,
+  /// a Terminator Captain's Relic Fist, a Necron Royal Warden's relic gauss
+  /// blaster. Matching the bare word threw the second lot out with the first,
+  /// so the shield a Captain's own option offers reached the roster as
+  /// wargear the datasheet had never heard of.
   static final _notThisDatasheet = RegExp(
-    r'crusade|battle\s*trait|battle\s*scar|relic|specialism|'
+    r'crusade|battle\s*trait|battle\s*scar|relics\b|specialism|'
     r'expanding the empire|white dwarf|warlord|requisition|enhancement|'
     r'weapon\s*modification',
     caseSensitive: false,
