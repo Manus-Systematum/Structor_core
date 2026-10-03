@@ -63,6 +63,42 @@ final _manualPath = '$_root/data-enhancement-text.json';
 
 /// Which BSData-derived list replaces which 40kdc file, and which fields of it
 /// are worth diffing when both sources state one.
+/// Factions whose codex has reached 40kdc and not BSData, so 40kdc's
+/// datasheets are the current ones (§3.42).
+///
+/// BSData is primary everywhere else (§3.10), and it is primary here for
+/// what 40kdc does not carry: rule wording, datasheets 40kdc has no record
+/// of. But 40kdc 1.4.5 ingested the Space Marine codex on 2026-09-17,
+/// reviewed against Games Workshop's own app data, and BSData's catalogue
+/// has not moved since the 8th. Written over 40kdc, BSData put every
+/// codex statline back to the index — Intercessors at T4 where the codex
+/// prints T5. The entry comes out when BSData publishes the codex.
+const _codexIn40kdc = {'adeptus-astartes'};
+
+/// What a codex datasheet takes from 40kdc rather than BSData. Points and
+/// the Legends flag are left to BSData and the dataset patch, which carries
+/// Games Workshop's current manual.
+const _codexFields = {
+  'profiles',
+  'keywords',
+  'faction_keywords',
+  'weapon_ids',
+  'ability_ids',
+};
+
+/// The codex faction a faction's datasheets come from, if any: itself, or
+/// the parent of a chapter.
+String? _codexLead(String factionId) {
+  if (_codexIn40kdc.contains(factionId)) return factionId;
+  for (final raw in _readArray('$_dcRoot/core/$factionId/factions.json')) {
+    final record = asMap(raw);
+    if (str(record['id']) != factionId) continue;
+    final parent = str(record['parent_faction_id']);
+    if (parent != null && _codexIn40kdc.contains(parent)) return parent;
+  }
+  return null;
+}
+
 const _files = {
   'units': (
     path: 'core/%s/units.json',
@@ -165,10 +201,29 @@ void main(List<String> args) {
     };
 
     var added = 0;
+    final lead = _codexLead(factionId);
     for (final entry in _files.entries) {
       final spec = entry.value;
       final relative = spec.path.replaceFirst('%s', factionId);
-      final existing = _readArray('$_dcRoot/$relative');
+      var existing = _readArray('$_dcRoot/$relative');
+
+      // A chapter publishes no datasheets in 40kdc, so BSData's copy of a
+      // parent datasheet was written whole and, being the chapter's own,
+      // won over the parent's codex record in that chapter's armies. Merged
+      // over the parent's 40kdc record instead, it keeps its own points and
+      // takes the codex content.
+      if (lead != null && lead != factionId && entry.key != 'abilities') {
+        final produced_ = {
+          for (final raw in produced[entry.key]!)
+            if (str(asMap(raw)[spec.idField]) case final id?) id,
+        };
+        existing = [
+          ...existing,
+          for (final raw in _readArray(
+              '$_dcRoot/${spec.path.replaceFirst('%s', lead)}'))
+            if (produced_.contains(str(asMap(raw)[spec.idField]))) raw,
+        ];
+      }
 
       final result = mergeRecords(
         faction: factionId,
@@ -178,7 +233,11 @@ void main(List<String> args) {
         fortykdc: existing,
         compare: spec.compare,
         fillOnly: spec.fillOnly,
-        keepFrom40kdc: entry.key == 'units' ? const {'weapon_ids'} : const {},
+        keepFrom40kdc: entry.key != 'units'
+            ? const {}
+            : lead != null
+                ? _codexFields
+                : const {'weapon_ids'},
         union: entry.key == 'units' ? const {'wargear_budgets'} : const {},
       );
 
@@ -235,7 +294,10 @@ void main(List<String> args) {
     // Weapon slots, which 40kdc has no equivalent of (§4.20). Written as BSData
     // produced them; the loader decides per datasheet whether to trust them.
     if (!reportOnly && mapped.wargearSlots.isNotEmpty) {
-      _write('$_outRoot/core/$factionId/wargear-slots.json', mapped.wargearSlots);
+      final slots = lead == null
+          ? mapped.wargearSlots
+          : _slotsTheCodexAgreesWith(mapped.wargearSlots, lead);
+      _write('$_outRoot/core/$factionId/wargear-slots.json', slots);
     }
 
     harvested[factionId] = {
@@ -864,6 +926,53 @@ void _writeManifest(List<String> factions) {
               'rebuild.',
           'factions': all,
         })}\n');
+}
+
+/// BSData's weapon slots, less those that describe a pre-codex loadout.
+///
+/// A slot's default is what the model carries before any option is taken. Where
+/// the codex model does not carry it — Vanguard Veterans' bolt pistol, the
+/// Redemptor's twin fragstorm launcher — the slot is the index's, and offering
+/// it would build an army the codex does not allow. The datasheet then falls
+/// back to 40kdc's own wargear options, which 40kdc took from the same app data
+/// as the codex profiles (§3.42).
+List<Object?> _slotsTheCodexAgreesWith(List<Object?> slots, String lead) {
+  String fold(String s) =>
+      s.toLowerCase().replaceAll(RegExp('[^a-z]'), '').replaceAll(RegExp(r's$'), '');
+  final carried = <String, Map<String, Set<String>>>{};
+  for (final raw in _readArray('$_dcRoot/core/$lead/unit-compositions.json')) {
+    final record = asMap(raw);
+    final unit = str(record['unit_id']);
+    if (unit == null) continue;
+    for (final m in asList(record['models'])) {
+      final model = asMap(m);
+      carried.putIfAbsent(unit, () => {})[fold(strOr(model['name'], ''))] = {
+        for (final w in asList(model['default_weapon_ids']))
+          '$w'.endsWith('-$unit')
+              ? '$w'.substring(0, '$w'.length - unit.length - 1)
+              : '$w',
+      };
+    }
+  }
+  return [
+    for (final raw in slots)
+      if (asMap(raw) case final record)
+        if (_agrees(record, carried[str(record['unit_id'])], fold)) raw,
+  ];
+}
+
+bool _agrees(Map<String, Object?> record, Map<String, Set<String>>? models,
+    String Function(String) fold) {
+  if (models == null) return true;
+  for (final s in asList(record['slots'])) {
+    final slot = asMap(s);
+    final model = models[fold(strOr(slot['model'], ''))];
+    if (model == null) continue;
+    for (final d in asList(slot['default'])) {
+      if (!model.contains('$d')) return false;
+    }
+  }
+  return true;
 }
 
 /// Writes a faction's army rules as a list and as the first of them.

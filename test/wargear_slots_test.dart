@@ -18,11 +18,15 @@ void main() {
 
   late MapCatalogue astartes;
   late MapCatalogue chaos;
+  late MapCatalogue sororitas;
+  late MapCatalogue votann;
   setUpAll(() {
     if (!root.existsSync()) return;
     final loader = correctedLoader();
     astartes = MapCatalogue.ofFaction(loader.loadFaction('adeptus-astartes'));
     chaos = MapCatalogue.ofFaction(loader.loadFaction('chaos-space-marines'));
+    sororitas = MapCatalogue.ofFaction(loader.loadFaction('adepta-sororitas'));
+    votann = MapCatalogue.ofFaction(loader.loadFaction('leagues-of-votann'));
   });
 
   UnitLoadout loadoutOf(Catalogue catalogue, String id) {
@@ -99,33 +103,48 @@ void main() {
     }, skip: skip);
   });
 
-  group('Vanguard Veterans', () {
+  // Both of these were Vanguard Veterans with Jump Packs until the codex
+  // (§3.42): BSData's slots for that squad are the index's, so they are no
+  // longer read, and the behaviour is tested where BSData is current.
+  group('slots shared and undefaulted', () {
     test('a trooper\'s choice stays on the trooper, not the Sergeant', () {
       if (!root.existsSync()) return;
-      // The reported bug, on the other unit it was reported on.
-      const id = 'vanguard-veteran-squad-with-jump-packs';
-      final loadout = loadoutOf(astartes, id);
-      final troopers = loadout.slots.indexWhere((s) => s.seats > 1 && s.name == 'Melee Weapon');
-      final sergeant = loadout.slots.indexWhere((s) => s.seats == 1 && s.name == 'Melee Weapon');
+      // The reported bug: a squad whose leader and troopers have a slot of
+      // the same name. A Paragon Warsuit squad has three.
+      const id = 'paragon-warsuits';
+      const name = 'Paragon Melee Weapon';
+      final loadout = loadoutOf(sororitas, id);
+      final troopers = loadout.slots.indexWhere((s) => s.seats > 1 && s.name == name);
+      final leader = loadout.slots.indexWhere((s) => s.seats == 1 && s.name == name);
       expect(troopers, isNot(-1));
-      expect(sergeant, isNot(-1));
+      expect(leader, isNot(-1));
 
-      var (roster, editor, unitId) = armyWith(astartes, 'adeptus-astartes', id);
+      var (roster, editor, unitId) = armyWith(sororitas, 'adepta-sororitas', id);
       roster = editor.chooseInSlot(roster, unitId, loadout, troopers, [0]);
 
-      final reading = loadout.read(roster.units.single, astartes.composition(id));
+      final reading = loadout.read(roster.units.single, sororitas.composition(id));
       expect(reading.slots[troopers], [0]);
-      expect(reading.slots[sergeant], isEmpty,
-          reason: 'the trooper\'s weapon was shown on the Sergeant\'s slot');
+      expect(reading.slots[leader], isEmpty,
+          reason: 'the trooper\'s weapon was shown on the leader\'s slot');
     }, skip: skip);
 
-    test('a trooper slot BSData leaves undefaulted takes the pistol they carry', () {
+    test('a slot BSData leaves undefaulted takes the weapon the model carries', () {
       if (!root.existsSync()) return;
-      final loadout = loadoutOf(astartes, 'vanguard-veteran-squad-with-jump-packs');
-      final pistols = loadout.slots.firstWhere((s) => s.seats > 1 && s.name == 'Pistol Option');
-      expect(pistols.defaultItems, ['bolt-pistol']);
-      expect(pistols.choices, isNot(contains(['bolt-pistol'])),
-          reason: 'offered a bolt pistol in place of itself');
+      final loadout = loadoutOf(votann, 'cthonian-earthshakers');
+      final main = loadout.slots.firstWhere((s) => s.name == 'Main weapon');
+      expect(main.defaultItems, ['breacher-ordnance']);
+      expect(main.choices, isNot(contains(['breacher-ordnance'])),
+          reason: 'offered its own weapon in place of itself');
+    }, skip: skip);
+
+    test('a codex datasheet does not take the index\'s slots', () {
+      if (!root.existsSync()) return;
+      // 40kdc's codex Vanguard Veteran carries no bolt pistol; BSData's slots
+      // start the squad with one. The slots are dropped at merge (§3.42).
+      expect(astartes.wargearSlots('vanguard-veteran-squad-with-jump-packs'),
+          isNull);
+      // And a datasheet whose slots the codex agrees with keeps them.
+      expect(astartes.wargearSlots('intercessor-squad'), isNotNull);
     }, skip: skip);
   });
 

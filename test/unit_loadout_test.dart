@@ -65,10 +65,10 @@ void main() {
       expect(load('adeptus-astartes').wargearOptions('ballistus-dreadnought'),
           isEmpty);
       expect(loadout.fixed, isNotEmpty);
-      // The third gun is `twin-storm-bolter` in BSData and Wahapedia and
-      // `storm-bolters` in 40kdc's codex ingest of 2026-09-17; which the
-      // codex prints is not settled here (§3.42), and this test is about the
-      // datasheet having no options, not about what the gun is called.
+      // The third gun is `storm-bolters` in the codex, which 40kdc carries,
+      // and `twin-storm-bolter` in the index BSData and Wahapedia still
+      // print (§3.43). This test is about the datasheet having no options,
+      // not about what the gun is called.
       for (final weapon in const [
         'ballistus-lascannon',
         'ballistus-missile-launcher',

@@ -169,12 +169,11 @@ class SlotCorrection implements Correction {
 
 /// What one model of a datasheet carries before any option is taken.
 ///
-/// 40kdc's codex ingest of 2026-09-17 gave Vanguard Veterans with Jump Packs
-/// a relic blade and nothing else, where BSData and Wahapedia's codex-era
-/// page both print a bolt pistol and a Vanguard Veteran weapon. The loadout
-/// reads a model's defaults to tell which of a slot's choices it already
-/// carries, so the wrong default left the squad's pistol slot with no
-/// default at all (§3.42).
+/// The loadout reads a model's defaults to tell which of a slot's choices it
+/// already carries, so a wrong default leaves a slot with none. Only for a
+/// default two sources *current with the rules* contradict: the first entry,
+/// Vanguard Veterans, was withdrawn when the two that outvoted 40kdc turned
+/// out both to predate the codex it had ingested (§3.42, §3.43).
 class CompositionCorrection implements Correction {
   @override
   final String faction;
