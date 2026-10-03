@@ -117,10 +117,7 @@ void main() {
       expect(reading.slots[troopers], [0]);
       expect(reading.slots[sergeant], isEmpty,
           reason: 'the trooper\'s weapon was shown on the Sergeant\'s slot');
-    }, skip: skip ??
-        '40kdc 1.4.5 gives Vanguard Veterans a relic blade and no pistol; '
-        'BSData\'s slots are still pre-codex. Open until BSData publishes the '
-        'Space Marine codex (DESIGN.md §3.42)');
+    }, skip: skip);
 
     test('a trooper slot BSData leaves undefaulted takes the pistol they carry', () {
       if (!root.existsSync()) return;
@@ -129,10 +126,7 @@ void main() {
       expect(pistols.defaultItems, ['bolt-pistol']);
       expect(pistols.choices, isNot(contains(['bolt-pistol'])),
           reason: 'offered a bolt pistol in place of itself');
-    }, skip: skip ??
-        '40kdc 1.4.5 gives Vanguard Veterans a relic blade and no pistol; '
-        'BSData\'s slots are still pre-codex. Open until BSData publishes the '
-        'Space Marine codex (DESIGN.md §3.42)');
+    }, skip: skip);
   });
 
   group('Raptors', () {

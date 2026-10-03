@@ -167,6 +167,41 @@ class SlotCorrection implements Correction {
   });
 }
 
+/// What one model of a datasheet carries before any option is taken.
+///
+/// 40kdc's codex ingest of 2026-09-17 gave Vanguard Veterans with Jump Packs
+/// a relic blade and nothing else, where BSData and Wahapedia's codex-era
+/// page both print a bolt pistol and a Vanguard Veteran weapon. The loadout
+/// reads a model's defaults to tell which of a slot's choices it already
+/// carries, so the wrong default left the squad's pistol slot with no
+/// default at all (§3.42).
+class CompositionCorrection implements Correction {
+  @override
+  final String faction;
+  final String unitId;
+  @override
+  final String reason;
+  final String? upstream;
+
+  /// The model's name as `unit-compositions.json` spells it.
+  final String model;
+
+  /// Its weapons, replacing what upstream lists for it.
+  final List<String> defaultWeaponIds;
+
+  @override
+  String get subject => '$unitId/$model';
+
+  const CompositionCorrection({
+    required this.faction,
+    required this.unitId,
+    required this.reason,
+    required this.model,
+    required this.defaultWeaponIds,
+    this.upstream,
+  });
+}
+
 /// A word upstream misspells, and what it should read.
 ///
 /// **Spelling is the one correction that needs no judgement about the game.**
@@ -375,6 +410,9 @@ class DataCorrections {
 
   /// Weapon slots transcribed from the printed datasheet (§4.20).
   final List<SlotCorrection> slots;
+
+  /// A model's default loadout where upstream has it wrong (§3.42).
+  final List<CompositionCorrection> compositions;
   final List<WeaponCorrection> weapons;
   final List<EnhancementCorrection> enhancements;
   final List<PhaseMappingCorrection> phaseMappings;
@@ -385,6 +423,7 @@ class DataCorrections {
     this.units = const [],
     this.spellings = const [],
     this.slots = const [],
+    this.compositions = const [],
     this.weapons = const [],
     this.enhancements = const [],
     this.phaseMappings = const [],
@@ -398,6 +437,7 @@ class DataCorrections {
       units.isEmpty &&
       spellings.isEmpty &&
       slots.isEmpty &&
+      compositions.isEmpty &&
       weapons.isEmpty &&
       enhancements.isEmpty &&
       phaseMappings.isEmpty &&
@@ -601,6 +641,50 @@ class DataCorrections {
       }
     }
     return out;
+  }
+
+  /// Sets corrected default loadouts on raw `unit-compositions.json` records.
+  ///
+  /// A model named by a correction and absent from the record is left alone:
+  /// a correction that finds nothing to correct is stale, not a new model.
+  List<Object?> applyToCompositions(String factionId, List<Object?> records) {
+    final mine = [
+      for (final c in compositions)
+        if (c.faction == factionId || c.faction == _anyFaction) c,
+    ];
+    if (mine.isEmpty) return records;
+    return [
+      for (final raw in records)
+        if (raw is Map && mine.any((c) => c.unitId == '${raw['unit_id']}'))
+          {
+            for (final e in raw.entries) '${e.key}': e.value,
+            'models': [
+              for (final m in asList(raw['models']))
+                if (m is Map)
+                  _correctModel(
+                      {for (final e in m.entries) '${e.key}': e.value},
+                      mine.where((c) => c.unitId == '${raw['unit_id']}'))
+                else
+                  m,
+            ],
+          }
+        else
+          raw,
+    ];
+  }
+
+  static Map<String, Object?> _correctModel(
+      Map<String, Object?> model, Iterable<CompositionCorrection> fixes) {
+    for (final fix in fixes) {
+      if (fix.model == model['name']) {
+        return {
+          ...model,
+          'default_weapon_ids': fix.defaultWeaponIds,
+          'corrected': {'reason': fix.reason},
+        };
+      }
+    }
+    return model;
   }
 
   /// Applies unit corrections to raw `units.json` records.
@@ -1009,6 +1093,31 @@ class DataCorrections {
       }
     }
 
+    final compositionCorrections = <CompositionCorrection>[];
+    final rawCompositions = root['compositions'];
+    if (rawCompositions is List) {
+      for (final node in rawCompositions) {
+        if (node is! Map) continue;
+        final reason = node['reason']?.toString().trim() ?? '';
+        if (reason.isEmpty) continue;
+        for (final model in asList(_plain(node['models']))) {
+          if (model is! Map<String, Object?>) continue;
+          final name = model['name']?.toString() ?? '';
+          if (name.isEmpty) continue;
+          compositionCorrections.add(CompositionCorrection(
+            faction: node['faction']?.toString() ?? '',
+            unitId: node['id']?.toString() ?? '',
+            reason: reason,
+            upstream: node['upstream']?.toString(),
+            model: name,
+            defaultWeaponIds: [
+              for (final w in asList(model['default_weapon_ids'])) '$w',
+            ],
+          ));
+        }
+      }
+    }
+
     final spellings = <SpellingCorrection>[];
     final rawSpellings = root['spellings'];
     if (rawSpellings is List) {
@@ -1120,6 +1229,7 @@ class DataCorrections {
       units: units,
       spellings: spellings,
       slots: slotCorrections,
+      compositions: compositionCorrections,
       weapons: weapons,
       enhancements: enhancements,
       phaseMappings: phaseMappings,

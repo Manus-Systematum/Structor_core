@@ -183,6 +183,10 @@ void main(List<String> args) {
     // not carry its parent's datasheets, so it does not carry their slots.
     files['wargear-slots'] = loader.corrections
         .applyToWargearSlots(factionId, files['wargear-slots']!);
+    // A model's default loadout, corrected where upstream has it wrong
+    // (§3.42). Like the slots, only the faction's own records.
+    files['unit-compositions'] = loader.corrections
+        .applyToCompositions(factionId, files['unit-compositions']!);
 
     final self = files['factions']!
         .whereType<Map<String, Object?>>()

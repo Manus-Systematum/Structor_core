@@ -370,7 +370,9 @@ class DatasetLoader {
           .map(LeaderAttachment.fromJson)
           .toList(growable: false),
       enhancementIds: enhancementIds,
-      compositions: sheets('core', 'unit-compositions.json')
+      compositions: corrections
+          .applyToCompositions(
+              sheetOwner, sheets('core', 'unit-compositions.json'))
           .map(UnitComposition.fromJson)
           .where((c) => c.unitId.isNotEmpty)
           .toList(growable: false),

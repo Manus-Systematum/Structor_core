@@ -641,4 +641,64 @@ abilities:
       expect(plain.unitIds, isEmpty);
     }, skip: snapshotAvailable ? null : 'no snapshot');
   });
+
+  group('compositions', () {
+    final corrections = DataCorrections.parse('''
+compositions:
+  - faction: testers
+    id: squad
+    reason: both other sources print a pistol
+    models:
+      - name: Sergeant
+        default_weapon_ids: [bolt-pistol, chainsword]
+''');
+    final records = <Object?>[
+      {
+        'unit_id': 'squad',
+        'models': [
+          {'name': 'Sergeant', 'default_weapon_ids': ['relic-blade']},
+          {'name': 'Trooper', 'default_weapon_ids': ['boltgun']},
+        ],
+      },
+      {
+        'unit_id': 'other',
+        'models': [
+          {'name': 'Sergeant', 'default_weapon_ids': ['relic-blade']},
+        ],
+      },
+    ];
+    List<Object?> modelsOf(List<Object?> out, String id) =>
+        ((out.firstWhere((r) => (r! as Map)['unit_id'] == id)! as Map)['models']
+            as List<Object?>);
+
+    test('the named model carries what the correction says', () {
+      final out = corrections.applyToCompositions('testers', records);
+      final sergeant = modelsOf(out, 'squad').first! as Map;
+      expect(sergeant['default_weapon_ids'], ['bolt-pistol', 'chainsword']);
+      expect(sergeant['corrected'], isNotNull);
+    });
+
+    test('nothing else changes', () {
+      final out = corrections.applyToCompositions('testers', records);
+      expect((modelsOf(out, 'squad')[1]! as Map)['default_weapon_ids'],
+          ['boltgun']);
+      expect((modelsOf(out, 'other').single! as Map)['default_weapon_ids'],
+          ['relic-blade'],
+          reason: 'a Sergeant of another datasheet is not this one');
+      expect(corrections.applyToCompositions('elsewhere', records),
+          same(records));
+    });
+
+    test('an entry without a reason is not a correction', () {
+      final unexplained = DataCorrections.parse('''
+compositions:
+  - faction: testers
+    id: squad
+    models:
+      - name: Sergeant
+        default_weapon_ids: [bolt-pistol]
+''');
+      expect(unexplained.compositions, isEmpty);
+    });
+  });
 }

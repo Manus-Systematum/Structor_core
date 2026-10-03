@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:test/test.dart';
@@ -334,14 +335,39 @@ void main() {
 
   group('against the real sources', () {
     final mfm = File('$dataRoot/mfm/necrons.yaml');
+    final updates = Directory('$dataRoot/updates');
     final available = mfm.existsSync() &&
-        Directory('$dataRoot/40kdc/core/necrons').existsSync();
+        Directory('${snapshotDir.path}/core/necrons').existsSync() &&
+        updates.existsSync();
 
-    test('Necrons agree with the Munitorum', () {
-      final faction = DatasetLoader('$dataRoot/40kdc').loadFaction('necrons');
+    // What the app prices with: the merged snapshot, corrected, with the
+    // dataset patch over it. This read raw 40kdc until 2026-10-04, and so
+    // failed for as long as anyone can remember on prices upstream had not
+    // caught up with — which no player ever saw, since BSData is primary and
+    // the patch carries the manual (§3.10, §3.15). It also hid the two errors
+    // a player *did* see: Lokhust Heavy Destroyers collapsed to one price for
+    // 1-3 models, and Canoptek Court at 3 DP after the manual made it 2.
+    test('Necrons as shipped agree with the Munitorum', () {
+      final patches = PatchSet([
+        for (final file in updates.listSync().whereType<File>())
+          if (file.path.endsWith('.json'))
+            DatasetPatch.fromJson(jsonDecode(file.readAsStringSync())),
+      ]);
+      final corrections = DatasetLoader.correctionsAt(correctionsPath);
+      List<Object?> raw(String file) => jsonDecode(
+          File('${snapshotDir.path}/core/necrons/$file.json')
+              .readAsStringSync()) as List<Object?>;
+      List<Object?> patched(String file, List<Object?> records) =>
+          patches.apply(records, faction: 'necrons', file: file);
+
       final report = CrossChecker(
-        units: faction.units,
-        detachments: faction.detachments,
+        units: patched('units',
+                corrections.applyToUnits('necrons', raw('units')).records)
+            .map(SourceUnit.fromJson)
+            .toList(),
+        detachments: patched('detachments', raw('detachments'))
+            .map(SourceDetachment.fromJson)
+            .toList(),
       ).compare(MfmFaction.parse(mfm.readAsStringSync()), factionId: 'necrons');
 
       expect(report.unitsCompared, greaterThan(40));
