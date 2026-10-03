@@ -146,18 +146,18 @@ class ArmyRules {
     Roster roster, {
     required Catalogue catalogue,
     Set<String>? sharedAbilityIds,
-    String? factionRuleId,
+    List<String> factionRuleIds = const [],
   }) {
     const renderer = RulesRenderer();
     final shared = sharedAbilityIds ?? sharedAcross(catalogue.allUnits);
 
     final armyWide = <ReferenceEntry>[];
-    final rule =
-        factionRuleId == null ? null : catalogue.ability(factionRuleId);
-    if (rule != null) {
+    for (final id in factionRuleIds) {
+      final rule = catalogue.ability(id);
+      if (rule == null) continue;
       armyWide.add(ReferenceEntry(
         kind: ReferenceKind.detachmentRule,
-        id: factionRuleId!,
+        id: id,
         title: rule.name,
         source: 'Army rule',
         body: renderer.render(rule).text,

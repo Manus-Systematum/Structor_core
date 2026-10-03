@@ -96,11 +96,15 @@ class FactionData {
   /// BSData's weapon slots and counted swaps, per datasheet (§4.20).
   final List<SourceWargearSlots> wargearSlots;
 
-  /// The army rule every unit in the faction has — For the Greater Good, Oath
-  /// of Moment. `factions.json` has always carried it; nothing read the file,
-  /// so the one rule that is true of the whole army was the one rule the app
-  /// never showed (DESIGN.md §7.3.9).
-  final String? factionRuleId;
+  /// The army rules every unit in the faction has — For the Greater Good, Oath
+  /// of Moment. `factions.json` has always carried them; nothing read the
+  /// file, so the one rule that is true of the whole army was the one rule
+  /// the app never showed (DESIGN.md §7.3.9).
+  ///
+  /// A list since 40kdc 1.4.4, because Tyranids have two: Shadow in the Warp
+  /// and Synapse. Read from `faction_rule_ids`, or the older single
+  /// `faction_rule_id` where a record still publishes that.
+  final List<String> factionRuleIds;
 
   /// The faction's display name, from the same record.
   final String? factionName;
@@ -135,7 +139,7 @@ class FactionData {
     this.compositions = const [],
     this.wargearOptions = const [],
     this.wargearSlots = const [],
-    this.factionRuleId,
+    this.factionRuleIds = const [],
     this.factionName,
     this.factionKeywords = const [],
     this.parentFactionId,
@@ -323,7 +327,7 @@ class DatasetLoader {
 
     return FactionData(
       factionId: factionId,
-      factionRuleId: self == null ? null : str(self['faction_rule_id']),
+      factionRuleIds: self == null ? const [] : factionRulesOf(self),
       factionName: self == null ? null : str(self['name']),
       factionKeywords: self == null ? const [] : strList(self['keywords']),
       parentFactionId: parentId,
@@ -475,4 +479,13 @@ class DatasetLoader {
         .toList()
       ..sort();
   }
+}
+
+/// A faction record's army rules: the list where it is published, else the
+/// single id older records carry.
+List<String> factionRulesOf(Map<String, Object?> record) {
+  final ids = strList(record['faction_rule_ids']);
+  if (ids.isNotEmpty) return ids;
+  final single = str(record['faction_rule_id']);
+  return single == null ? const [] : [single];
 }

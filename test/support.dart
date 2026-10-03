@@ -41,13 +41,16 @@ DatasetLoader correctedLoader() => DatasetLoader(
 /// What the reference list costs against today's data — not what it prints.
 ///
 /// The export prints **2,000** and was a legal Strike Force when it was made.
-/// Two of its sixteen units cost ten points more now, and Games Workshop's own
+/// Two of its sixteen units cost more now, and Games Workshop's own
 /// published points back the higher figure in both cases:
 ///
 /// | unit | export | GW today |
 /// | --- | --- | --- |
 /// | Crisis Starscythe Battlesuits (×2) | 120 | 100 + 6 flamers at 5 = 130 |
-/// | The Twin Lance | 220 | 230 |
+/// | The Twin Lance | 220 | 240 |
+///
+/// The Twin Lance was 230 in September; Games Workshop's October points
+/// raised it to 240.
 ///
 /// Whether Games Workshop raised them or the exporting app had them wrong is
 /// not something this repository can tell, and the tests do not claim either:
@@ -61,7 +64,7 @@ DatasetLoader correctedLoader() => DatasetLoader(
 /// the printed total are the same number and any divergence at all is a bug.
 /// Until there is one, this constant carries the difference explicitly so
 /// that a *new* divergence still fails rather than hiding inside a stale one.
-const referenceListCost = 2030;
+const referenceListCost = 2040;
 
 /// The overrun the reference list now reports at a 2,000 point cap.
 ///
@@ -73,8 +76,10 @@ const referenceListOverrun = referenceListCost - 2000;
 /// The same arithmetic for the 1,000 point Incursion fixture, which prints
 /// 995.
 ///
-/// It drifts by the same 30 and for the same two datasheets — two Starscythe
+/// It drifts by the same 40 and for the same two datasheets — two Starscythe
 /// units and The Twin Lance — which is the strongest evidence available here
 /// that the difference is a points change and not something the importer is
-/// doing to these two lists. Nothing else in either export moved.
-const incursionListCost = 1025;
+/// doing to these two lists. Nothing else in either export moved, and when
+/// The Twin Lance went from 230 to 240 in October both lists moved by that
+/// same ten.
+const incursionListCost = 1035;

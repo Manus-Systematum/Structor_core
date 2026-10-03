@@ -118,13 +118,13 @@ void main() {
       final chapter = loader.loadFaction('blood-angels');
       final parent = loader.loadFaction('adeptus-astartes');
 
-      expect(parent.factionRuleId, 'oath-of-moment');
-      expect(templars.factionRuleId, 'templar-vows');
-      expect(loader.loadFaction('deathwatch').factionRuleId, 'mission-tactics');
+      expect(parent.factionRuleIds, ['oath-of-moment']);
+      expect(templars.factionRuleIds, ['templar-vows']);
+      expect(loader.loadFaction('deathwatch').factionRuleIds, ['mission-tactics']);
 
       // And a chapter that agrees with its parent is reported as agreeing,
       // rather than as having no rule of its own.
-      expect(chapter.factionRuleId, 'oath-of-moment');
+      expect(chapter.factionRuleIds, ['oath-of-moment']);
 
       expect(templars.detachments.length,
           greaterThan(parent.detachments.length));

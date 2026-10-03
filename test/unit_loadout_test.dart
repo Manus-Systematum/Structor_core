@@ -65,15 +65,21 @@ void main() {
       expect(load('adeptus-astartes').wargearOptions('ballistus-dreadnought'),
           isEmpty);
       expect(loadout.fixed, isNotEmpty);
+      // The third gun is `twin-storm-bolter` in BSData and Wahapedia and
+      // `storm-bolters` in 40kdc's codex ingest of 2026-09-17; which the
+      // codex prints is not settled here (§3.42), and this test is about the
+      // datasheet having no options, not about what the gun is called.
       for (final weapon in const [
         'ballistus-lascannon',
         'ballistus-missile-launcher',
-        'twin-storm-bolter',
       ]) {
         expect(loadout.fixed.keys, contains(weapon));
         expect(loadout.counters.map((c) => c.itemId), isNot(contains(weapon)),
             reason: 'no + beside a weapon nothing offers to change');
       }
+      expect(loadout.fixed.keys.where((k) => k.contains('storm-bolter')),
+          hasLength(1),
+          reason: 'one storm bolter, whichever name it carries');
       expect(loadout.isUnpublished, isTrue,
           reason: 'the screen still says why the numbers do not move');
     }, skip: available ? null : 'no snapshot');

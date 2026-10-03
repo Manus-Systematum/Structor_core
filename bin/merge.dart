@@ -253,6 +253,8 @@ void main(List<String> args) {
   if (!reportOnly) {
     _copyRemaining(factions, _mergedBefore());
     _writeManifest(factions);
+    stdout.writeln('${_writeFactionRuleBothWays()} faction records given '
+        'their army rules in both forms');
     stdout.writeln('\n${_linkEnhancementText(factions, harvested)} '
         'enhancements linked to their printed text');
     stdout.writeln('${_applyMissionText()} mission cards given their '
@@ -862,6 +864,47 @@ void _writeManifest(List<String> factions) {
               'rebuild.',
           'factions': all,
         })}\n');
+}
+
+/// Writes a faction's army rules as a list and as the first of them.
+///
+/// 40kdc 1.4.4 replaced `faction_rule_id` with a list, `faction_rule_ids`,
+/// because Tyranids have two — Shadow in the Warp and Synapse. Every app
+/// installed before that reads only the single id, and installed apps take
+/// their data from the site, so publishing the list alone would have taken
+/// the army rule off every army on every phone that has not updated. Both are
+/// written: an older app keeps the rule it always showed, a newer one reads
+/// them all. Crimson Fists still publish the old form, so the list is also
+/// filled from the single id when it is missing.
+int _writeFactionRuleBothWays() {
+  final core = Directory('$_outRoot/core');
+  if (!core.existsSync()) return 0;
+  var changed = 0;
+  for (final dir in core.listSync().whereType<Directory>()) {
+    final path = '${dir.path}/factions.json';
+    final records = _readArray(path);
+    if (records.isEmpty) continue;
+    var touched = false;
+    final out = <Object?>[];
+    for (final raw in records) {
+      final record = Map<String, Object?>.of(asMap(raw));
+      final ids = strList(record['faction_rule_ids']);
+      final single = str(record['faction_rule_id']);
+      final all = ids.isNotEmpty ? ids : [if (single != null) single];
+      if (all.isNotEmpty &&
+          (ids.isEmpty || single != all.first)) {
+        record['faction_rule_ids'] = all;
+        record['faction_rule_id'] = all.first;
+        touched = true;
+      }
+      out.add(record);
+    }
+    if (touched) {
+      _write(path, out);
+      changed++;
+    }
+  }
+  return changed;
 }
 
 /// Fills the tree with the 40kdc files this run did not produce.

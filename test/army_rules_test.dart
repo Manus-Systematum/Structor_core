@@ -53,7 +53,7 @@ void main() {
         roster,
         catalogue: dataset,
         sharedAbilityIds: snapshot.sharedAbilities,
-        factionRuleId: snapshot.factionRuleId,
+        factionRuleIds: snapshot.factionRuleIds,
       );
     });
 
@@ -174,14 +174,14 @@ void main() {
       final snapshot =
           SnapshotBuilder.fromLoader(loader, dataset).build(roster);
 
-      expect(snapshot.factionRuleId, 'for-the-greater-good');
+      expect(snapshot.factionRuleIds, ['for-the-greater-good']);
       expect(snapshot.abilities, contains('for-the-greater-good'));
       expect(snapshot.sharedAbilities, contains('lone-operative'));
 
       // And survives the round trip a shared list makes.
       final reread =
           RosterSnapshot.fromJson(jsonDecode(jsonEncode(snapshot.toJson())));
-      expect(reread.factionRuleId, snapshot.factionRuleId);
+      expect(reread.factionRuleIds, snapshot.factionRuleIds);
       expect(reread.sharedAbilities, snapshot.sharedAbilities);
     }, skip: available ? null : 'no snapshot');
 
@@ -196,7 +196,36 @@ void main() {
         'abilities': const {},
       });
       expect(reread.sharedAbilities, isEmpty);
-      expect(reread.factionRuleId, isNull);
+      expect(reread.factionRuleIds, isEmpty);
+    });
+
+    test('a snapshot written before the list keeps its one army rule', () {
+      // Saved and shared lists from before 40kdc 1.4.4 name a single rule.
+      final reread = RosterSnapshot.fromJson({
+        'version': {'source': '40kdc', 'revision': 'r', 'factionId': 'f'},
+        'units': const {},
+        'weapons': const {},
+        'detachments': const {},
+        'abilities': const {},
+        'factionRuleId': 'for-the-greater-good',
+      });
+      expect(reread.factionRuleIds, ['for-the-greater-good']);
+    });
+
+    test('a snapshot still names its first army rule singly', () {
+      // An app that predates the list reads only `factionRuleId`.
+      const snapshot = RosterSnapshot(
+        version: DatasetVersion(
+            source: '40kdc', revision: 'r', factionId: 'tyranids'),
+        units: {},
+        weapons: {},
+        detachments: {},
+        abilities: {},
+        factionRuleIds: ['shadow-in-the-warp', 'synapse'],
+      );
+      final json = snapshot.toJson();
+      expect(json['factionRuleIds'], ['shadow-in-the-warp', 'synapse']);
+      expect(json['factionRuleId'], 'shadow-in-the-warp');
     });
   });
 }

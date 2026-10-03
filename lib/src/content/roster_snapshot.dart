@@ -51,9 +51,10 @@ class RosterSnapshot {
   /// appear in no phase section at all.
   final Map<String, Object?> phaseMappings;
 
-  /// The faction's own army rule — For the Greater Good, Oath of Moment. Its
-  /// record is in [abilities]; this names which one it is (§7.3.9).
-  final String? factionRuleId;
+  /// The faction's own army rules — For the Greater Good, Oath of Moment, or
+  /// both of the Tyranids'. Their records are in [abilities]; this names
+  /// which ones they are (§7.3.9).
+  final List<String> factionRuleIds;
 
   /// The army faction's own keywords, so a saved list can still tell its own
   /// datasheets from its allies (§4.18).
@@ -80,7 +81,7 @@ class RosterSnapshot {
     this.stratagems = const {},
     this.enhancements = const {},
     this.phaseMappings = const {},
-    this.factionRuleId,
+    this.factionRuleIds = const [],
     this.factionKeywords = const [],
     this.sharedAbilities = const {},
   });
@@ -102,7 +103,10 @@ class RosterSnapshot {
         'stratagems': stratagems,
         'enhancements': enhancements,
         'phaseMappings': phaseMappings,
-        if (factionRuleId != null) 'factionRuleId': factionRuleId,
+        if (factionRuleIds.isNotEmpty) 'factionRuleIds': factionRuleIds,
+        // The first one again, singly, for an app that predates the list and
+        // is handed this snapshot: it keeps the rule it always showed.
+        if (factionRuleIds.isNotEmpty) 'factionRuleId': factionRuleIds.first,
         if (factionKeywords.isNotEmpty) 'factionKeywords': factionKeywords,
         'sharedAbilities': sharedAbilities.toList(growable: false),
       };
@@ -123,7 +127,10 @@ class RosterSnapshot {
       // stratagems were. Such a list opens with its rules unfiled by phase
       // rather than failing — `Update to current data` refills it (§4.6).
       phaseMappings: asMap(j['phaseMappings']),
-      factionRuleId: str(j['factionRuleId']),
+      // A snapshot written before the list holds one id under the old name.
+      factionRuleIds: strList(j['factionRuleIds']).isNotEmpty
+          ? strList(j['factionRuleIds'])
+          : [if (str(j['factionRuleId']) case final id?) id],
       factionKeywords: strList(j['factionKeywords']),
       // Absent in snapshots written before rules were tiered. An older list
       // falls back to its own datasheets, which files a few more rules under
@@ -265,8 +272,8 @@ class SnapshotBuilder {
 
     // The army rule is not reachable from any datasheet, so nothing above
     // would have pulled it in.
-    final factionRuleId = dataset.faction.factionRuleId;
-    if (factionRuleId != null) takeAbility(factionRuleId);
+    final factionRuleIds = dataset.faction.factionRuleIds;
+    factionRuleIds.forEach(takeAbility);
 
     // Only for the abilities this roster actually captured — the mapping file
     // covers the whole faction and a snapshot is meant to be small.
@@ -284,7 +291,7 @@ class SnapshotBuilder {
       stratagems: stratagems,
       enhancements: enhancements,
       phaseMappings: phases,
-      factionRuleId: factionRuleId,
+      factionRuleIds: factionRuleIds,
       factionKeywords: dataset.faction.factionKeywords,
       // Computed here, over the whole faction, because this is the last point
       // at which the whole faction is in hand.

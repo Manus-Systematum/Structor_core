@@ -80,17 +80,24 @@ void main() {
     test('carries the faction its own army rule', () {
       // factions.json shipped from the start and nothing read it, so the one
       // rule true of every unit was the one rule the app never had (§7.3.9).
-      expect(load('tau-empire').faction.factionRuleId, 'for-the-greater-good');
+      expect(load('tau-empire').faction.factionRuleIds, ['for-the-greater-good']);
       expect(load('tau-empire').faction.factionName, 'T’au Empire');
       expect(
-        load('adeptus-astartes').faction.factionRuleId,
-        'oath-of-moment',
+        load('adeptus-astartes').faction.factionRuleIds,
+        ['oath-of-moment'],
       );
+    }, skip: available ? null : 'no snapshot');
+
+    test('carries every army rule a faction has', () {
+      // 40kdc 1.4.4 made the army rule a list for the Tyranids, who have two.
+      // Reading only the first would quietly drop Synapse.
+      expect(load('tyranids').faction.factionRuleIds,
+          ['shadow-in-the-warp', 'synapse']);
     }, skip: available ? null : 'no snapshot');
 
     test('the army rule resolves to an ability that renders', () {
       final dataset = load('tau-empire');
-      final rule = dataset.ability(dataset.faction.factionRuleId!);
+      final rule = dataset.ability(dataset.faction.factionRuleIds.single);
       expect(rule, isNotNull);
       expect(const RulesRenderer().render(rule!).text, isNotEmpty);
     }, skip: available ? null : 'no snapshot');
