@@ -918,6 +918,7 @@ class _Walk {
       final link = asMap(raw);
       final type = str(link['type']);
       if (type != 'rule' && type != 'profile') continue;
+      if (_hiddenUntilSomethingIsTaken(link)) continue;
       final target = index.resolve(link);
       if (target != null) {
         _readRule(target, linked: true, name: _linkName(link, target.name));
@@ -1150,10 +1151,66 @@ class _Walk {
     return name.trim();
   }
 
+  /// Whether [link] is one BSData hides until something else is taken.
+  ///
+  /// A rule another model grants is written as a link that sits on the
+  /// datasheet and is hidden: the Sisters of Silence link `Fights First` with
+  /// `hidden = true while associations of Aleya < 1`, which is how "the unit
+  /// Aleya leads fights first" is said here. Read as a plain link it printed
+  /// Fights First on three datasheets that have no such rule, and the same
+  /// shape carries Necron protocols, a Grimnyr's Feel No Pain and a
+  /// Shadowseer's Infiltrators — 157 of the 209 visibility modifiers in the
+  /// snapshot.
+  ///
+  /// **Only a condition an empty roster already satisfies counts**, which is a
+  /// count of something not taken. The other direction is the opposite case
+  /// and stays visible: `Deep Strike` hidden *while* the force is Boarding
+  /// Actions, or `Stealth` hidden *while* a piece of wargear is taken, is a
+  /// rule the datasheet has in every game that does not do that. Evaluating
+  /// BattleScribe's conditions in general is a project of its own (see the
+  /// points modifiers above); this reads the one case that is decidable
+  /// without a roster.
+  static bool _hiddenUntilSomethingIsTaken(Map<String, dynamic> link) {
+    for (final raw in asList(link['modifiers'])) {
+      final modifier = asMap(raw);
+      if (str(modifier['field']) != 'hidden') continue;
+      if (str(modifier['type']) != 'set' || modifier['value'] != true) continue;
+      final conditions = _conditionsIn(modifier);
+      if (conditions.isEmpty) continue;
+      if (conditions.every(_holdsWithNothingSelected)) return true;
+    }
+    return false;
+  }
+
+  /// Every condition of a modifier, whatever it nests them in. A group's own
+  /// `and`/`or` is not read: a group whose conditions *all* hold on an empty
+  /// roster fires either way, and one where they do not is left visible.
+  static List<Object?> _conditionsIn(Map<String, dynamic> node) => [
+        ...asList(node['conditions']),
+        for (final group in asList(node['conditionGroups']))
+          ..._conditionsIn(asMap(group)),
+      ];
+
+  static bool _holdsWithNothingSelected(Object? raw) {
+    final condition = asMap(raw);
+    if (str(condition['type']) != 'lessThan') return false;
+    final threshold = asInt(condition['value']);
+    return threshold != null && threshold > 0;
+  }
+
   void _readRule(BsEntry rule, {bool linked = false, String? name}) {
     // A shared rule carries its text on the record itself; a profile carries
     // it in a characteristic. Both shapes appear, and both are rules.
-    final description = str(rule.json['description']);
+    //
+    // The characteristic is read here rather than left to [_readProfiles]
+    // because an `infoLink` of type `profile` resolves to the profile, not to
+    // an entry holding one: `Daughters of the Abyss` is a `sharedProfiles`
+    // record, and looking for a profile *inside* it found nothing and dropped
+    // the rule off every datasheet that links one — 839 such links in the
+    // snapshot, 60 of them rules 40kdc publishes and the merge then replaced
+    // with BSData's shorter list.
+    final description =
+        str(rule.json['description']) ?? _profileDescription(rule.json);
     if (description == null || description.isEmpty) {
       _readProfiles(rule);
       return;
@@ -1167,16 +1224,32 @@ class _Walk {
     if (!_inWeapon && !(_inWargear && linked)) {
       (_inWargear ? wargearAbilityIds : abilityIds).add(id);
     }
+    // A `sharedRules` record is a core rule and says nothing about itself; a
+    // profile names its own type, and `Abilities` is left unstamped for the
+    // same reason an inline profile leaves it unstamped — 40kdc's `unit` or
+    // `wargear` reading is the better one and survives the merge.
+    final typeName = strOr(rule.json['typeName'], '');
     abilities.putIfAbsent(
       id,
       () => {
         'ability_id': id,
         'name': displayName,
         'description': normaliseRuleText(description),
-        'ability_type': 'core',
+        if (typeName != 'Abilities')
+          'ability_type': typeName.isEmpty ? 'core' : typeName,
         'game_version': bsGameVersion,
       },
     );
+  }
+
+  /// The text a profile node carries in its `Description` characteristic.
+  static String? _profileDescription(Map<String, dynamic> node) {
+    for (final raw in asList(node['characteristics'])) {
+      final characteristic = asMap(raw);
+      if (str(characteristic['name']) != 'Description') continue;
+      return str(characteristic[r'$text']);
+    }
+    return null;
   }
 
   /// `➤ Ion cannon - overcharge` -> `overcharge`.
